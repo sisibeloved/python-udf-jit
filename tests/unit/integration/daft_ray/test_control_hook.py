@@ -78,6 +78,12 @@ _LANG_CHAR_RE = {
     "ar": re.compile(r"[\u0600-\u06ff]"),
     "ru": re.compile(r"[\u0400-\u04ff]"),
 }
+_COPYRIGHT_RE = re.compile(
+    r"(?i)(copyright\s*\(?c\)?|©|\(c\)|all rights reserved)[^\n.]*\.?"
+)
+_COPYRIGHT_SPACE_RE = re.compile(
+    r"(?i)(copyright\s*\(?c\)?|©|\(c\)|all rights reserved)[^\n.]*\.?"
+)
 
 
 def punctuation_text(value: str) -> str:
@@ -141,6 +147,14 @@ def make_test_language_filter(lang="en", min_score=0.1):
         )
 
     return language_filter
+
+
+def copyright_text(value: str) -> str:
+    return _COPYRIGHT_RE.sub("", value)
+
+
+def copyright_space_text(value: str) -> str:
+    return _COPYRIGHT_SPACE_RE.sub(" ", value)
 
 
 def text_length_filter(value: str, min_len: int = 2, max_len: int = 4) -> bool:
@@ -1217,6 +1231,38 @@ class ControlHookTest(unittest.TestCase):
 
         self.assertEqual(factory.options, [])
         self.assertIsInstance(expression.worker_callable, FallbackOnlyWrapper)
+        self.assertEqual(registry.registration_count, 1)
+
+    def test_native_expression_lowers_only_qualified_copyright_signature(self):
+        _, registry = install(
+            func_class=ColumnarFakeFunc,
+            dataframe_class=FakeMixedStringDataFrame,
+        )
+        with mock.patch.dict(os.environ, {"UDFJIT_COLUMNAR": "native-expr"}):
+            _kind, columns = FakeMixedStringDataFrame().with_columns(
+                {
+                    "qualified": ColumnarFakeFunc(
+                        daft_method(copyright_text),
+                        on_error=None,
+                    )(FakeExpression()),
+                    "wrong_replacement": ColumnarFakeFunc(
+                        daft_method(copyright_space_text),
+                        on_error=None,
+                    )(FakeExpression()),
+                }
+            )
+        self.assertEqual(
+            columns["qualified"].operations,
+            ((
+                "regexp_replace",
+                r"(?i)(copyright\s*\(?c\)?|©|\(c\)|all rights reserved)[^\n.]*\.?",
+                "",
+            ),),
+        )
+        self.assertIsInstance(
+            columns["wrong_replacement"].worker_callable,
+            FallbackOnlyWrapper,
+        )
         self.assertEqual(registry.registration_count, 1)
 
     def test_native_expression_diagnostics_are_strictly_opt_in(self):

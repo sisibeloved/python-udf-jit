@@ -147,6 +147,11 @@ _KNOWN_CROSS_ENGINE_REGEX_SUBSTITUTIONS = {
         re.IGNORECASE | re.UNICODE,
         "",
     ): r"(?i)https?://\S+|www\.\S+",
+    (
+        r"(?i)(copyright\s*\(?c\)?|©|\(c\)|all rights reserved)[^\n.]*\.?",
+        re.IGNORECASE | re.UNICODE,
+        "",
+    ): r"(?i)(copyright\s*\(?c\)?|©|\(c\)|all rights reserved)[^\n.]*\.?",
 }
 _LANGUAGE_ID_HELPER_AST_SHA256 = (
     "1288702ffba59fab1c1f59680eb3706ffc23a5b60401991725d03f4587595a36"
