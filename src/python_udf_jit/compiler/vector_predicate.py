@@ -105,6 +105,7 @@ class RegexSubstitutionPlan:
     regex_name: str
     regex_object: object
     pattern: str
+    arrow_pattern: str
     replacement: str
 
     kind = "regex"
@@ -119,15 +120,13 @@ class RegexSubstitutionPlan:
 
 _ABSENT = object()
 _RE_PATTERN_TYPE = type(re.compile(""))
-_KNOWN_CROSS_ENGINE_REGEX_SUBSTITUTIONS = frozenset(
-    {
-        (
-            r"(?i)https?://\S+|www\.\S+",
-            re.IGNORECASE | re.UNICODE,
-            "",
-        ),
-    }
-)
+_KNOWN_CROSS_ENGINE_REGEX_SUBSTITUTIONS = {
+    (
+        r"https?://\S+|www\.\S+",
+        re.IGNORECASE | re.UNICODE,
+        "",
+    ): r"(?i)https?://\S+|www\.\S+",
+}
 
 
 def _function_node(
@@ -474,16 +473,18 @@ def _cross_engine_regex_safe(pattern: str) -> bool:
 def _known_cross_engine_regex_substitution(
     regex_object: object,
     replacement: str,
-) -> bool:
+) -> str | None:
     """Accept only patterns qualified against frozen real and negative data."""
 
     if type(regex_object) is not _RE_PATTERN_TYPE:
-        return False
-    return (
-        regex_object.pattern,
-        regex_object.flags,
-        replacement,
-    ) in _KNOWN_CROSS_ENGINE_REGEX_SUBSTITUTIONS
+        return None
+    return _KNOWN_CROSS_ENGINE_REGEX_SUBSTITUTIONS.get(
+        (
+            regex_object.pattern,
+            regex_object.flags,
+            replacement,
+        )
+    )
 
 
 def capture_regex_substitution(
@@ -520,16 +521,16 @@ def capture_regex_substitution(
         regex_object.pattern
     ) is not str:
         raise VectorPredicateCaptureError("regex_cross_engine_proof_failed")
-    if not (
-        (
-            regex_object.flags == re.UNICODE
-            and _cross_engine_regex_safe(regex_object.pattern)
-        )
-        or _known_cross_engine_regex_substitution(
+    if regex_object.flags == re.UNICODE and _cross_engine_regex_safe(
+        regex_object.pattern
+    ):
+        arrow_pattern = regex_object.pattern
+    else:
+        arrow_pattern = _known_cross_engine_regex_substitution(
             regex_object,
             call.args[0].value,
         )
-    ):
+    if arrow_pattern is None:
         raise VectorPredicateCaptureError("regex_cross_engine_proof_failed")
     return RegexSubstitutionPlan(
         function=function,
@@ -538,6 +539,7 @@ def capture_regex_substitution(
         regex_name=regex_name,
         regex_object=regex_object,
         pattern=regex_object.pattern,
+        arrow_pattern=arrow_pattern,
         replacement=call.args[0].value,
     )
 

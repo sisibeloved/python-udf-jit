@@ -280,7 +280,7 @@ def _native_expression_lowering(
                 )
             if plan.kind == "regex":
                 result = expression.regexp_replace(
-                    plan.pattern,
+                    plan.arrow_pattern,
                     plan.replacement,
                 )
                 return _NativeExpressionProof(

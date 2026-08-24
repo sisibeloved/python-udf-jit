@@ -67,8 +67,8 @@ def text_identity(_instance: object, value: str) -> str:
 
 _WS_RE = re.compile(r"\s+")
 _HTML_RE = re.compile(r"<[^>]+>")
-_URL_RE = re.compile(r"(?i)https?://\S+|www\.\S+")
-_URL_SPACE_RE = re.compile(r"(?i)https?://\S+|www\.\S+")
+_URL_RE = re.compile(r"https?://\S+|www\.\S+", re.IGNORECASE)
+_URL_SPACE_RE = re.compile(r"https?://\S+|www\.\S+", re.IGNORECASE)
 _ANCHORED_RE = re.compile(r"^prefix")
 
 
