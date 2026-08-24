@@ -68,6 +68,7 @@ def text_identity(_instance: object, value: str) -> str:
 _WS_RE = re.compile(r"\s+")
 _HTML_RE = re.compile(r"<[^>]+>")
 _URL_RE = re.compile(r"(?i)https?://\S+|www\.\S+")
+_URL_SPACE_RE = re.compile(r"(?i)https?://\S+|www\.\S+")
 _ANCHORED_RE = re.compile(r"^prefix")
 
 
@@ -89,6 +90,10 @@ def html_text(value: str) -> str:
 
 def unsafe_url_text(value: str) -> str:
     return _URL_RE.sub("", value)
+
+
+def unsafe_url_space_text(value: str) -> str:
+    return _URL_SPACE_RE.sub(" ", value)
 
 
 def unsafe_anchored_text(value: str) -> str:
@@ -1050,7 +1055,7 @@ class ControlHookTest(unittest.TestCase):
         )
         self.assertEqual(registry.registration_count, 0)
 
-    def test_native_expression_lowers_only_cross_engine_safe_regex(self):
+    def test_native_expression_lowers_safe_and_qualified_regex(self):
         _, registry = install(
             func_class=ColumnarFakeFunc,
             dataframe_class=FakeMixedStringDataFrame,
@@ -1062,8 +1067,12 @@ class ControlHookTest(unittest.TestCase):
                         daft_method(html_text),
                         on_error=None,
                     )(FakeExpression()),
-                    "unsafe": ColumnarFakeFunc(
+                    "qualified_url": ColumnarFakeFunc(
                         daft_method(unsafe_url_text),
+                        on_error=None,
+                    )(FakeExpression()),
+                    "url_wrong_replacement": ColumnarFakeFunc(
+                        daft_method(unsafe_url_space_text),
                         on_error=None,
                     )(FakeExpression()),
                     "unsafe_anchor": ColumnarFakeFunc(
@@ -1073,17 +1082,27 @@ class ControlHookTest(unittest.TestCase):
                 }
             )
         html = columns["html"]
-        unsafe = columns["unsafe"]
+        qualified_url = columns["qualified_url"]
+        url_wrong_replacement = columns["url_wrong_replacement"]
         unsafe_anchor = columns["unsafe_anchor"]
         self.assertEqual(
             html.operations,
             (("regexp_replace", "<[^>]+>", " "),),
         )
-        self.assertIsInstance(unsafe.worker_callable, FallbackOnlyWrapper)
+        self.assertEqual(
+            qualified_url.operations,
+            (("regexp_replace", r"(?i)https?://\S+|www\.\S+", ""),),
+        )
+        self.assertIsInstance(
+            url_wrong_replacement.worker_callable,
+            FallbackOnlyWrapper,
+        )
         self.assertIsInstance(
             unsafe_anchor.worker_callable,
             FallbackOnlyWrapper,
         )
+        # The qualified URL and the existing HTML pattern both lower directly;
+        # only the wrong-replacement URL and anchored pattern need fallback.
         self.assertEqual(registry.registration_count, 2)
 
     def test_unsupported_native_expression_does_not_create_batch_guard(self):
@@ -1098,7 +1117,7 @@ class ControlHookTest(unittest.TestCase):
             func_class=ColumnarFakeFunc,
         )
         func = ColumnarFakeFunc(
-            daft_method(unsafe_url_text),
+            daft_method(unsafe_url_space_text),
             on_error=None,
             use_process=None,
         )

@@ -119,6 +119,15 @@ class RegexSubstitutionPlan:
 
 _ABSENT = object()
 _RE_PATTERN_TYPE = type(re.compile(""))
+_KNOWN_CROSS_ENGINE_REGEX_SUBSTITUTIONS = frozenset(
+    {
+        (
+            r"(?i)https?://\S+|www\.\S+",
+            re.IGNORECASE | re.UNICODE,
+            "",
+        ),
+    }
+)
 
 
 def _function_node(
@@ -462,6 +471,21 @@ def _cross_engine_regex_safe(pattern: str) -> bool:
     return not escaped and not in_class
 
 
+def _known_cross_engine_regex_substitution(
+    regex_object: object,
+    replacement: str,
+) -> bool:
+    """Accept only patterns qualified against frozen real and negative data."""
+
+    if type(regex_object) is not _RE_PATTERN_TYPE:
+        return False
+    return (
+        regex_object.pattern,
+        regex_object.flags,
+        replacement,
+    ) in _KNOWN_CROSS_ENGINE_REGEX_SUBSTITUTIONS
+
+
 def capture_regex_substitution(
     function: types.FunctionType,
 ) -> RegexSubstitutionPlan:
@@ -492,11 +516,19 @@ def capture_regex_substitution(
     regex_name = call.func.value.id
     globals_dict = function.__globals__
     regex_object = globals_dict.get(regex_name, _ABSENT)
-    if (
-        type(regex_object) is not _RE_PATTERN_TYPE
-        or regex_object.flags != re.UNICODE
-        or type(regex_object.pattern) is not str
-        or not _cross_engine_regex_safe(regex_object.pattern)
+    if type(regex_object) is not _RE_PATTERN_TYPE or type(
+        regex_object.pattern
+    ) is not str:
+        raise VectorPredicateCaptureError("regex_cross_engine_proof_failed")
+    if not (
+        (
+            regex_object.flags == re.UNICODE
+            and _cross_engine_regex_safe(regex_object.pattern)
+        )
+        or _known_cross_engine_regex_substitution(
+            regex_object,
+            call.args[0].value,
+        )
     ):
         raise VectorPredicateCaptureError("regex_cross_engine_proof_failed")
     return RegexSubstitutionPlan(
