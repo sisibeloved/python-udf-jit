@@ -224,6 +224,8 @@ def _native_expression_lowering(
         ):
             return _NO_NATIVE_EXPRESSION
         from python_udf_jit.compiler.vector_predicate import (
+            VectorPredicateCaptureError,
+            capture_language_id_score_predicate,
             capture_string_length_predicate,
             capture_string_transform,
         )
@@ -239,10 +241,16 @@ def _native_expression_lowering(
         if output_type == "string":
             plan = capture_string_transform(resolved.function)
         elif output_type == "bool":
-            plan = capture_string_length_predicate(
-                resolved.function,
-                bound_arguments=resolved.bound_arguments,
-            )
+            try:
+                plan = capture_string_length_predicate(
+                    resolved.function,
+                    bound_arguments=resolved.bound_arguments,
+                )
+            except VectorPredicateCaptureError:
+                plan = capture_language_id_score_predicate(
+                    resolved.function,
+                    bound_arguments=resolved.bound_arguments,
+                )
         else:
             return _NO_NATIVE_EXPRESSION
 
@@ -290,6 +298,28 @@ def _native_expression_lowering(
                     "regex",
                 )
         elif output_type == "bool":
+            if getattr(plan, "kind", "length") == "language_id":
+                patterns = dict(plan.arrow_patterns)
+                counts = {
+                    name: expression.regexp_count(pattern)
+                    for name, pattern in patterns.items()
+                }
+                english = counts["en"]
+                best_is_english = (
+                    (english >= counts["zh"])
+                    & (english >= counts["ja"])
+                    & (english >= counts["ko"])
+                    & (english >= counts["ar"])
+                    & (english >= counts["ru"])
+                )
+                nonblank = expression.regexp_count(r"\S") > 0
+                threshold = (english * 10) >= expression.length()
+                return _NativeExpressionProof(
+                    nonblank & best_is_english & threshold,
+                    resolved.wrapper_guard,
+                    plan,
+                    "language_id",
+                )
             length = expression.length()
             lower = (
                 length >= plan.lower

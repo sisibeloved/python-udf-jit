@@ -70,6 +70,14 @@ _HTML_RE = re.compile(r"<[^>]+>")
 _URL_RE = re.compile(r"https?://\S+|www\.\S+", re.IGNORECASE)
 _URL_SPACE_RE = re.compile(r"https?://\S+|www\.\S+", re.IGNORECASE)
 _ANCHORED_RE = re.compile(r"^prefix")
+_LANG_CHAR_RE = {
+    "en": re.compile(r"[a-zA-Z]"),
+    "zh": re.compile(r"[\u4e00-\u9fff]"),
+    "ja": re.compile(r"[\u3040-\u309f\u30a0-\u30ff]"),
+    "ko": re.compile(r"[\uac00-\ud7af]"),
+    "ar": re.compile(r"[\u0600-\u06ff]"),
+    "ru": re.compile(r"[\u0400-\u04ff]"),
+}
 
 
 def punctuation_text(value: str) -> str:
@@ -98,6 +106,41 @@ def unsafe_url_space_text(value: str) -> str:
 
 def unsafe_anchored_text(value: str) -> str:
     return _ANCHORED_RE.sub("", value)
+
+
+def test_language_helper(
+    value: str,
+    *,
+    lang: str | None = None,
+    min_score: float = 0.8,
+) -> bool:
+    if not value or not value.strip():
+        return False
+    total = len(value)
+    scores: dict[str, float] = {}
+    for code, pattern in _LANG_CHAR_RE.items():
+        hits = len(pattern.findall(value))
+        scores[code] = hits / total if total > 0 else 0.0
+    if not scores:
+        return False
+    best_lang = max(scores, key=lambda key: scores[key])
+    confidence = scores[best_lang]
+    if lang is not None:
+        target_langs = [lang] if isinstance(lang, str) else lang
+        if best_lang not in target_langs:
+            return False
+    return confidence >= min_score
+
+
+def make_test_language_filter(lang="en", min_score=0.1):
+    def language_filter(value: str) -> bool:
+        return test_language_helper(
+            value,
+            lang=lang,
+            min_score=min_score,
+        )
+
+    return language_filter
 
 
 def text_length_filter(value: str, min_len: int = 2, max_len: int = 4) -> bool:
@@ -168,6 +211,9 @@ class FakeExpression:
     def regexp_replace(self, pattern, replacement):
         return self._with("regexp_replace", pattern, replacement)
 
+    def regexp_count(self, pattern):
+        return self._with("regexp_count", pattern)
+
     def lstrip(self):
         return self._with("lstrip")
 
@@ -191,6 +237,9 @@ class FakeExpression:
 
     def __and__(self, other):
         return self._with("and", other.operations)
+
+    def __mul__(self, value):
+        return self._with("mul", value)
 
 
 class FakeArrowArray:
@@ -1104,6 +1153,47 @@ class ControlHookTest(unittest.TestCase):
         # The qualified URL and the existing HTML pattern both lower directly;
         # only the wrong-replacement URL and anchored pattern need fallback.
         self.assertEqual(registry.registration_count, 2)
+
+    def test_native_expression_lowers_qualified_language_profile(self):
+        from python_udf_jit.compiler import vector_predicate
+
+        helper_hash = vector_predicate._function_ast_sha256(
+            test_language_helper
+        )
+        _, registry = install(
+            func_class=ColumnarFakeFunc,
+            dataframe_class=FakeMixedStringDataFrame,
+        )
+        with (
+            mock.patch.object(
+                vector_predicate,
+                "_LANGUAGE_ID_HELPER_AST_SHA256",
+                helper_hash,
+            ),
+            mock.patch.dict(os.environ, {"UDFJIT_COLUMNAR": "native-expr"}),
+        ):
+            _kind, columns = FakeMixedStringDataFrame().with_columns(
+                {
+                    "language": ColumnarFakeFunc(
+                        daft_method(make_test_language_filter()),
+                        on_error=None,
+                    )(FakeExpression()),
+                    "unsupported_lang": ColumnarFakeFunc(
+                        daft_method(make_test_language_filter(lang="zh")),
+                        on_error=None,
+                    )(FakeExpression()),
+                }
+            )
+        self.assertNotIsInstance(
+            columns["language"].worker_callable,
+            FallbackOnlyWrapper,
+        )
+        self.assertEqual(columns["language"].operations[-1][0], "and")
+        self.assertIsInstance(
+            columns["unsupported_lang"].worker_callable,
+            FallbackOnlyWrapper,
+        )
+        self.assertEqual(registry.registration_count, 1)
 
     def test_unsupported_native_expression_does_not_create_batch_guard(self):
         factory = RecordingBatchFactory()
