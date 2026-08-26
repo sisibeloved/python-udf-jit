@@ -1123,7 +1123,13 @@ class ControlHookTest(unittest.TestCase):
             func_class=ColumnarFakeFunc,
             dataframe_class=FakeMixedStringDataFrame,
         )
-        with mock.patch.dict(os.environ, {"UDFJIT_COLUMNAR": "native-expr"}):
+        with mock.patch.dict(
+            os.environ,
+            {
+                "UDFJIT_COLUMNAR": "native-expr",
+                "UDFJIT_FINEWEB_LINKS_LOWERING": "1",
+            },
+        ):
             _kind, columns = FakeMixedStringDataFrame().with_columns(
                 {
                     "html": ColumnarFakeFunc(
@@ -1184,7 +1190,13 @@ class ControlHookTest(unittest.TestCase):
                 "_LANGUAGE_ID_HELPER_AST_SHA256",
                 helper_hash,
             ),
-            mock.patch.dict(os.environ, {"UDFJIT_COLUMNAR": "native-expr"}),
+            mock.patch.dict(
+                os.environ,
+                {
+                    "UDFJIT_COLUMNAR": "native-expr",
+                    "UDFJIT_FINEWEB_LANGUAGE_ID_LOWERING": "1",
+                },
+            ),
         ):
             _kind, columns = FakeMixedStringDataFrame().with_columns(
                 {
@@ -1238,7 +1250,13 @@ class ControlHookTest(unittest.TestCase):
             func_class=ColumnarFakeFunc,
             dataframe_class=FakeMixedStringDataFrame,
         )
-        with mock.patch.dict(os.environ, {"UDFJIT_COLUMNAR": "native-expr"}):
+        with mock.patch.dict(
+            os.environ,
+            {
+                "UDFJIT_COLUMNAR": "native-expr",
+                "UDFJIT_FINEWEB_COPYRIGHT_LOWERING": "1",
+            },
+        ):
             _kind, columns = FakeMixedStringDataFrame().with_columns(
                 {
                     "qualified": ColumnarFakeFunc(
@@ -1264,6 +1282,135 @@ class ControlHookTest(unittest.TestCase):
             FallbackOnlyWrapper,
         )
         self.assertEqual(registry.registration_count, 1)
+
+    def test_fineweb_experimental_lowerings_are_fail_closed(self):
+        _, registry = install(
+            func_class=ColumnarFakeFunc,
+            dataframe_class=FakeMixedStringDataFrame,
+        )
+        with mock.patch.dict(
+            os.environ,
+            {"UDFJIT_COLUMNAR": "native-expr"},
+            clear=True,
+        ):
+            _kind, columns = FakeMixedStringDataFrame().with_columns(
+                {
+                    "links": ColumnarFakeFunc(
+                        daft_method(unsafe_url_text),
+                        on_error=None,
+                    )(FakeExpression()),
+                    "language": ColumnarFakeFunc(
+                        daft_method(make_test_language_filter()),
+                        on_error=None,
+                    )(FakeExpression()),
+                    "copyright": ColumnarFakeFunc(
+                        daft_method(copyright_text),
+                        on_error=None,
+                    )(FakeExpression()),
+                }
+            )
+        self.assertTrue(
+            all(
+                isinstance(expression.worker_callable, FallbackOnlyWrapper)
+                for expression in columns.values()
+            )
+        )
+        self.assertEqual(registry.registration_count, 3)
+
+        with mock.patch.dict(
+            os.environ,
+            {
+                "UDFJIT_COLUMNAR": "native-expr",
+                "UDFJIT_FINEWEB_LINKS_LOWERING": "true",
+                "UDFJIT_FINEWEB_LANGUAGE_ID_LOWERING": "yes",
+                "UDFJIT_FINEWEB_COPYRIGHT_LOWERING": "on",
+            },
+            clear=True,
+        ):
+            _kind, invalid_columns = FakeMixedStringDataFrame().with_columns(
+                {
+                    "links": ColumnarFakeFunc(
+                        daft_method(unsafe_url_text),
+                        on_error=None,
+                    )(FakeExpression()),
+                    "language": ColumnarFakeFunc(
+                        daft_method(make_test_language_filter()),
+                        on_error=None,
+                    )(FakeExpression()),
+                    "copyright": ColumnarFakeFunc(
+                        daft_method(copyright_text),
+                        on_error=None,
+                    )(FakeExpression()),
+                }
+            )
+        self.assertTrue(
+            all(
+                isinstance(expression.worker_callable, FallbackOnlyWrapper)
+                for expression in invalid_columns.values()
+            )
+        )
+
+    def test_fineweb_experimental_lowerings_can_be_combined(self):
+        from python_udf_jit.compiler import vector_predicate
+
+        helper_hash = vector_predicate._function_ast_sha256(
+            test_language_helper
+        )
+        _, registry = install(
+            func_class=ColumnarFakeFunc,
+            dataframe_class=FakeMixedStringDataFrame,
+        )
+        with (
+            mock.patch.object(
+                vector_predicate,
+                "_LANGUAGE_ID_HELPER_AST_SHA256",
+                helper_hash,
+            ),
+            mock.patch.dict(
+                os.environ,
+                {
+                    "UDFJIT_COLUMNAR": "native-expr",
+                    "UDFJIT_FINEWEB_LINKS_LOWERING": "1",
+                    "UDFJIT_FINEWEB_LANGUAGE_ID_LOWERING": "1",
+                    "UDFJIT_FINEWEB_COPYRIGHT_LOWERING": "1",
+                },
+                clear=True,
+            ),
+        ):
+            _kind, columns = FakeMixedStringDataFrame().with_columns(
+                {
+                    "links": ColumnarFakeFunc(
+                        daft_method(unsafe_url_text),
+                        on_error=None,
+                    )(FakeExpression()),
+                    "language": ColumnarFakeFunc(
+                        daft_method(make_test_language_filter()),
+                        on_error=None,
+                    )(FakeExpression()),
+                    "copyright": ColumnarFakeFunc(
+                        daft_method(copyright_text),
+                        on_error=None,
+                    )(FakeExpression()),
+                }
+            )
+        self.assertEqual(
+            columns["links"].operations,
+            (("regexp_replace", r"(?i)https?://\S+|www\.\S+", ""),),
+        )
+        self.assertNotIsInstance(
+            columns["language"].worker_callable,
+            FallbackOnlyWrapper,
+        )
+        self.assertEqual(columns["language"].operations[-1][0], "and")
+        self.assertEqual(
+            columns["copyright"].operations,
+            ((
+                "regexp_replace",
+                r"(?i)(copyright\s*\(?c\)?|©|\(c\)|all rights reserved)[^\n.]*\.?",
+                "",
+            ),),
+        )
+        self.assertEqual(registry.registration_count, 0)
 
     def test_native_expression_diagnostics_are_strictly_opt_in(self):
         _, _registry = install(func_class=ColumnarFakeFunc)

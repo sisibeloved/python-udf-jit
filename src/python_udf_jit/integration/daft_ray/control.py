@@ -201,6 +201,37 @@ def _columnar_scalar_call_eligible(
         return False
 
 
+_FINEWEB_LINKS_PATTERN = r"https?://\S+|www\.\S+"
+_FINEWEB_COPYRIGHT_PATTERN = (
+    r"(?i)(copyright\s*\(?c\)?|©|\(c\)|all rights reserved)[^\n.]*\.?"
+)
+
+
+def _fineweb_experimental_plan_enabled(plan: Any) -> bool:
+    """Fail closed for the three independently validated FineWeb lowerings."""
+
+    kind = getattr(plan, "kind", "")
+    if kind == "language_id":
+        return os.environ.get(
+            "UDFJIT_FINEWEB_LANGUAGE_ID_LOWERING",
+            "0",
+        ) == "1"
+    if kind != "regex":
+        return True
+    pattern = getattr(plan, "pattern", "")
+    if pattern == _FINEWEB_LINKS_PATTERN:
+        return os.environ.get(
+            "UDFJIT_FINEWEB_LINKS_LOWERING",
+            "0",
+        ) == "1"
+    if pattern == _FINEWEB_COPYRIGHT_PATTERN:
+        return os.environ.get(
+            "UDFJIT_FINEWEB_COPYRIGHT_LOWERING",
+            "0",
+        ) == "1"
+    return True
+
+
 def _native_expression_lowering(
     daft_module: Any,
     original_func_call: Any,
@@ -252,6 +283,8 @@ def _native_expression_lowering(
                     bound_arguments=resolved.bound_arguments,
                 )
         else:
+            return _NO_NATIVE_EXPRESSION
+        if not _fineweb_experimental_plan_enabled(plan):
             return _NO_NATIVE_EXPRESSION
 
         # Constructing a Daft batch UDF is observable framework work even when
