@@ -1,0 +1,3130 @@
+{
+  "schema_version": "1.1",
+  "created_at": "2026-08-27",
+  "measurement_dates": "2026-08-26/2026-08-27",
+  "experiment": "fineweb_three_lowerings_same_commit_serial_abba",
+  "workload": "pipeline_text_fineweb_full_min",
+  "classification": "full_pipeline_existing_and_incremental_optimization_abba_evidence",
+  "source": {
+    "repository": "python-udf-jit",
+    "branch": "wkf/perf-fineweb-three-lowerings",
+    "base_revision": "606ccc8b9395cd605f089b15080323d79d1cf41a",
+    "measured_revision": "dcd38360b025fb67a816b264643beeac2777f778",
+    "all_arms_same_measured_revision": true,
+    "cinderx_revision": "7214f89d92a3b21c79546a34e14f48e1e895739f",
+    "volc_revision": "17b2e6023a440843e5be6cf83d0c156819fa0cf4",
+    "epoch_source_fix_included": false,
+    "source_snapshots": [
+      {
+        "sha256": "33240dc6ba8015e521a0fc983a9ebf5e641cfb5be6fc2eb76622fb8fa031a820",
+        "size_bytes": 652
+      },
+      {
+        "sha256": "fe7ff771a43cbd3f539c18d36232b1b2d08f0e7397bf25ef76e49bd75d2a6545",
+        "size_bytes": 12253
+      }
+    ]
+  },
+  "environment": {
+    "source_snapshots": [
+      {
+        "sha256": "fe7ff771a43cbd3f539c18d36232b1b2d08f0e7397bf25ef76e49bd75d2a6545",
+        "size_bytes": 12253
+      },
+      {
+        "sha256": "b32a6a14c927e75590806e6635acef52b3f86f13e96ab82cb973b0717a14366b",
+        "size_bytes": 456
+      }
+    ],
+    "architecture": "aarch64",
+    "python": "3.14.3",
+    "container": "fineweb-three-lowerings-20260826",
+    "image": "volc-operator-sim-machine-code:p3-python314-arm54-dj152-s1-20260822",
+    "image_id": "sha256:62f9bad3d05d5fd69df59ae2dd939e5ef61d5249a4707f288e00bcbfbe54629b",
+    "cpu_affinity": [
+      32,
+      34,
+      36,
+      38
+    ],
+    "numa_node": 0,
+    "ray_num_cpus": 4,
+    "dj_np": 4,
+    "materialize_policy": "end",
+    "timing_tier": "p0",
+    "include_write_lance_in_elapsed": true,
+    "fuse_mappers": false,
+    "diagnostics": "off",
+    "serial_execution": true,
+    "cluster_epoch": "blue54-fineweb-three-lowerings-20260826",
+    "thread_limits": {
+      "OMP_NUM_THREADS": 1,
+      "MKL_NUM_THREADS": 1,
+      "OPENBLAS_NUM_THREADS": 1,
+      "NUMEXPR_NUM_THREADS": 1,
+      "VECLIB_MAXIMUM_THREADS": 1
+    },
+    "python_hash_seed": 0,
+    "cinderx_lightweight_frame": true,
+    "cinderx_hir_inliner": true
+  },
+  "modes": {
+    "stand-in": {
+      "VOLC_REAL_TEXT_OPS": "0"
+    },
+    "real-kenlm": {
+      "VOLC_REAL_TEXT_OPS": "1",
+      "perplexity": "SentencePiece + KenLM",
+      "language_id": "Character-regex heuristic, not official fastText",
+      "warmup": "20K B0 excluded from formal timing",
+      "sentencepiece_version": "0.2.1",
+      "kenlm_wheel": "kenlm-0.3.0-cp314-cp314-linux_aarch64.whl",
+      "kenlm_wheel_sha256": "d07671c485d605c257b08db9f2888ab5fe9f832c08823e6b59015a921b8d1aaf",
+      "sentencepiece_model_sha256": "cf8147a573770b4e6c0d4df1dcb75453baa88190706dab406be7711b84f059de",
+      "kenlm_model_sha256": "04923fccbb4e63005c40f01d66112659416de01accd80d16e366a592289ee07a"
+    }
+  },
+  "arms": {
+    "A": {
+      "purpose": "UDF JIT integration disabled; CinderX runtime and shared environment unchanged",
+      "environment": {
+        "UDFJIT_MODE": "off",
+        "UDFJIT_COLUMNAR": "0",
+        "UDFJIT_FINEWEB_LINKS_LOWERING": "0",
+        "UDFJIT_FINEWEB_LANGUAGE_ID_LOWERING": "0",
+        "UDFJIT_FINEWEB_COPYRIGHT_LOWERING": "0"
+      }
+    },
+    "B": {
+      "purpose": "Existing optimizations enabled; three new lowerings disabled",
+      "environment": {
+        "UDFJIT_MODE": "auto",
+        "UDFJIT_COLUMNAR": "1",
+        "UDFJIT_FINEWEB_LINKS_LOWERING": "0",
+        "UDFJIT_FINEWEB_LANGUAGE_ID_LOWERING": "0",
+        "UDFJIT_FINEWEB_COPYRIGHT_LOWERING": "0"
+      }
+    },
+    "C": {
+      "purpose": "B plus U01 links",
+      "environment": {
+        "UDFJIT_MODE": "auto",
+        "UDFJIT_COLUMNAR": "1",
+        "UDFJIT_FINEWEB_LINKS_LOWERING": "1",
+        "UDFJIT_FINEWEB_LANGUAGE_ID_LOWERING": "0",
+        "UDFJIT_FINEWEB_COPYRIGHT_LOWERING": "0"
+      }
+    },
+    "D": {
+      "purpose": "B plus M01 language ID",
+      "environment": {
+        "UDFJIT_MODE": "auto",
+        "UDFJIT_COLUMNAR": "1",
+        "UDFJIT_FINEWEB_LINKS_LOWERING": "0",
+        "UDFJIT_FINEWEB_LANGUAGE_ID_LOWERING": "1",
+        "UDFJIT_FINEWEB_COPYRIGHT_LOWERING": "0"
+      }
+    },
+    "E": {
+      "purpose": "B plus U03 copyright",
+      "environment": {
+        "UDFJIT_MODE": "auto",
+        "UDFJIT_COLUMNAR": "1",
+        "UDFJIT_FINEWEB_LINKS_LOWERING": "0",
+        "UDFJIT_FINEWEB_LANGUAGE_ID_LOWERING": "0",
+        "UDFJIT_FINEWEB_COPYRIGHT_LOWERING": "1"
+      }
+    },
+    "F": {
+      "purpose": "B plus all three lowerings",
+      "environment": {
+        "UDFJIT_MODE": "auto",
+        "UDFJIT_COLUMNAR": "1",
+        "UDFJIT_FINEWEB_LINKS_LOWERING": "1",
+        "UDFJIT_FINEWEB_LANGUAGE_ID_LOWERING": "1",
+        "UDFJIT_FINEWEB_COPYRIGHT_LOWERING": "1"
+      }
+    },
+    "G": {
+      "purpose": "Existing optimizations plus links and copyright only; language lowering disabled",
+      "environment": {
+        "UDFJIT_MODE": "auto",
+        "UDFJIT_COLUMNAR": "1",
+        "UDFJIT_FINEWEB_LINKS_LOWERING": "1",
+        "UDFJIT_FINEWEB_LANGUAGE_ID_LOWERING": "0",
+        "UDFJIT_FINEWEB_COPYRIGHT_LOWERING": "1"
+      }
+    }
+  },
+  "datasets": {
+    "20k": {
+      "input_rows": 20000,
+      "output_rows": 19981,
+      "input_fingerprint_sha256": "1c3c339ea8427d121457ea71233ece8a923e7436e96cbe5a7edd9cf023a8bf0e",
+      "output_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+      "fixture_id": "fineweb_edu_20k_p4_s1"
+    },
+    "200k": {
+      "input_rows": 200000,
+      "output_rows": 199765,
+      "input_fingerprint_sha256": "80e9d0ce05d073f6685059c5cf4861dbfbf81936a9f2c3592b48a15eeb07fdc2",
+      "output_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+      "fixture_id": "fineweb_edu_200k_p4"
+    }
+  },
+  "method": {
+    "metric": "runner metrics.elapsed_s, including Ray initialization and final Lance write",
+    "baseline": "A/B blocks compare UDF integration off with existing optimizations on. B/C,D,E,F,G blocks compare each new lowering combination with existing optimizations on. Shared CinderX runtime configuration stays unchanged.",
+    "protocol": "Independent serial reference/candidate/candidate/reference blocks. A/B: A1 B1 B2 A2; other rounds recorded per block; B/G measured only at 200K with fresh B11 G1 G2 B12.",
+    "aggregation": "Arithmetic mean of two measured runs per arm",
+    "speedup_formula": "mean(reference elapsed_s) / mean(candidate elapsed_s); reference arm comes from baseline_arm",
+    "reduction_percent_formula": "100 * (1 - mean(candidate elapsed_s) / mean(reference elapsed_s))",
+    "paired_speedup_formula": [
+      "first baseline / first candidate",
+      "last baseline / second candidate"
+    ],
+    "excluded": [
+      "warmup B0",
+      "diagnostic runs",
+      "older 40K single-branch results",
+      "historical operator-only results",
+      "cross-block total-gain ratios are excluded from paired ABBA gate conclusions"
+    ],
+    "missing_measurements": [
+      {
+        "mode": "stand-in",
+        "dataset": "20k",
+        "candidate_arm": "G",
+        "status": "not_included_in_available_measurements",
+        "note": "No matching 20K links+copyright ABBA samples were available for this summary; do not extrapolate from 200K."
+      },
+      {
+        "mode": "real-kenlm",
+        "dataset": "20k",
+        "candidate_arm": "G",
+        "status": "not_included_in_available_measurements",
+        "note": "No matching 20K links+copyright ABBA samples were available for this summary; do not extrapolate from 200K."
+      }
+    ],
+    "overall_comparison": "Reuse the A1/A2 mean from the same mode and size. Divide by each candidate mean from its own measured block. A/B is same-block; A/C,D,E,F,G are explicitly cross-block observations and do not enter the incremental ABBA gate."
+  },
+  "comparisons": [
+    {
+      "id": "stand-in-20k-AB",
+      "mode": "stand-in",
+      "dataset": "20k",
+      "optimization": "Existing UDF optimizations only",
+      "comparison_scope": "existing_optimization_gain",
+      "baseline_arm": "A",
+      "candidate_arm": "B",
+      "execution_order": [
+        "A1",
+        "B1",
+        "B2",
+        "A2"
+      ],
+      "samples": [
+        {
+          "round": "A1",
+          "arm": "A",
+          "run_id": "251c4b9e-24cd-4ecd-9046-da2d9781665a",
+          "timestamp_utc": "2026-08-26T10:07:21.464086+00:00",
+          "elapsed_s": 47.433800930157304,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "7cc236ad2642249fe6726924fdc4f0b4179bcb96d76ff47221eb96de88c86799",
+            "size_bytes": 16525
+          }
+        },
+        {
+          "round": "B1",
+          "arm": "B",
+          "run_id": "53c3f626-98da-4556-9212-e578dd3c6f42",
+          "timestamp_utc": "2026-08-26T10:08:31.436502+00:00",
+          "elapsed_s": 39.781991719733924,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "8c9453124dada1dbfc2e41d82521a800889e3cd692a37949059a736debcad2bc",
+            "size_bytes": 16530
+          }
+        },
+        {
+          "round": "B2",
+          "arm": "B",
+          "run_id": "1199a5bb-5ec7-4217-91b8-acacf7aca031",
+          "timestamp_utc": "2026-08-26T10:09:37.876948+00:00",
+          "elapsed_s": 38.86300575034693,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "2cf305b26f468e6140c19fbec150fa08ebe22a434317b6a2f15c7759540e4a6c",
+            "size_bytes": 16527
+          }
+        },
+        {
+          "round": "A2",
+          "arm": "A",
+          "run_id": "3422cbac-35f2-4e7c-ab52-415e0d1f76b4",
+          "timestamp_utc": "2026-08-26T10:10:40.980376+00:00",
+          "elapsed_s": 47.55942256003618,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "679aab8725882883c052ad2585393790e6e0d6b7e486f4d0c5e99167c44f36e4",
+            "size_bytes": 16527
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 47.49661174509674,
+        "candidate_mean_s": 39.322498735040426,
+        "speedup": 1.207873692491783,
+        "elapsed_reduction_percent": 17.209886578699297,
+        "paired_speedups": [
+          1.1923435423829645,
+          1.2237710810521036
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "embedded_extract_of_previous_sink_comparison",
+        "source_snapshot": {
+          "sha256": "399eb44bd8ec4ba0afb7566a188fe552aa1b3ad87b138a4f7d56d785eeb6049d",
+          "size_bytes": 910
+        },
+        "schema_equal": true,
+        "schema": "_text_chunk_mapper_12_out: large_string",
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "candidate_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "ordered_equal": true,
+        "embedded_sink_comparison": {
+          "baseline": {
+            "multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+            "ordered_sha256": "78867f0c0d8316ddacfa8e564b1aea5c4c6f185545542c68c5941c60a97bfc30",
+            "rows": 19981,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "candidate": {
+            "multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+            "ordered_sha256": "78867f0c0d8316ddacfa8e564b1aea5c4c6f185545542c68c5941c60a97bfc30",
+            "rows": 19981,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "equal": true
+        }
+      }
+    },
+    {
+      "id": "stand-in-20k-BC",
+      "mode": "stand-in",
+      "dataset": "20k",
+      "optimization": "U01 links",
+      "baseline_arm": "B",
+      "candidate_arm": "C",
+      "execution_order": [
+        "B3",
+        "C1",
+        "C2",
+        "B4"
+      ],
+      "samples": [
+        {
+          "round": "B3",
+          "arm": "B",
+          "run_id": "45a3e213-c865-4d36-a224-a002d79f6f59",
+          "timestamp_utc": "2026-08-26T10:12:20.828900+00:00",
+          "elapsed_s": 38.64117148052901,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "925055d237c6fdf9f438ea653ecf41c515d700173930bf377558e428ba24ff54",
+            "size_bytes": 16525
+          }
+        },
+        {
+          "round": "C1",
+          "arm": "C",
+          "run_id": "adbb2ce0-35c6-426c-9f8b-1a1b0dcfb61c",
+          "timestamp_utc": "2026-08-26T10:13:29.029666+00:00",
+          "elapsed_s": 35.42695357045159,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "64b2b34dbba531f2d887517784bee6b68d3cf6e3eddc10c0631119c9fb98a2da",
+            "size_bytes": 16525
+          }
+        },
+        {
+          "round": "C2",
+          "arm": "C",
+          "run_id": "53bcffdc-8ffd-41db-b85d-8a8c1113737e",
+          "timestamp_utc": "2026-08-26T10:14:31.236043+00:00",
+          "elapsed_s": 35.43932486977428,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "dca5ce9f2506ab1a740b713eba15e5e812a03791d5e6af74b19f68e585cab483",
+            "size_bytes": 16525
+          }
+        },
+        {
+          "round": "B4",
+          "arm": "B",
+          "run_id": "e4dffe3a-d76c-4d4f-8a5a-d02febdb597f",
+          "timestamp_utc": "2026-08-26T10:15:41.260816+00:00",
+          "elapsed_s": 38.601002800278366,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "4a2ddac4a8cbc9a08180a57305355c70556c71fb0fdf219502ee2603539a26ec",
+            "size_bytes": 16526
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 38.62108714040369,
+        "candidate_mean_s": 35.433139220112935,
+        "speedup": 1.0899708010765576,
+        "elapsed_reduction_percent": 8.25442305313996,
+        "paired_speedups": [
+          1.0907280357506746,
+          1.0892138307409076
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "embedded_extract_of_previous_sink_comparison",
+        "source_snapshot": {
+          "sha256": "735e01a4b80956b84ed554510aa26a2e108295163c605f75014e4f9362b3f88d",
+          "size_bytes": 909
+        },
+        "schema_equal": true,
+        "schema": "_text_chunk_mapper_12_out: large_string",
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "candidate_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "ordered_equal": true,
+        "embedded_sink_comparison": {
+          "baseline": {
+            "multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+            "ordered_sha256": "78867f0c0d8316ddacfa8e564b1aea5c4c6f185545542c68c5941c60a97bfc30",
+            "rows": 19981,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "candidate": {
+            "multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+            "ordered_sha256": "78867f0c0d8316ddacfa8e564b1aea5c4c6f185545542c68c5941c60a97bfc30",
+            "rows": 19981,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "equal": true
+        }
+      },
+      "comparison_scope": "incremental_lowering_gain"
+    },
+    {
+      "id": "stand-in-20k-BD",
+      "mode": "stand-in",
+      "dataset": "20k",
+      "optimization": "M01 language ID",
+      "baseline_arm": "B",
+      "candidate_arm": "D",
+      "execution_order": [
+        "B5",
+        "D1",
+        "D2",
+        "B6"
+      ],
+      "samples": [
+        {
+          "round": "B5",
+          "arm": "B",
+          "run_id": "0c0bae4c-6b99-4776-86eb-110de2715986",
+          "timestamp_utc": "2026-08-26T10:17:12.467799+00:00",
+          "elapsed_s": 38.67645501997322,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "c35ef63f69366ec3adac6c704b74e2e120e795caceb79bfaa89d09f260cd32e3",
+            "size_bytes": 16524
+          }
+        },
+        {
+          "round": "D1",
+          "arm": "D",
+          "run_id": "8461a26e-0bd2-473c-a8d9-5f97c9ac471a",
+          "timestamp_utc": "2026-08-26T10:18:14.392397+00:00",
+          "elapsed_s": 33.7737928298302,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "3ac078c61648c6aea7c9656f1ca224752089c28cd529553ee0dd0d06606da4b0",
+            "size_bytes": 16527
+          }
+        },
+        {
+          "round": "D2",
+          "arm": "D",
+          "run_id": "7bdba04d-9c6b-4342-a0cb-7152729f2aaf",
+          "timestamp_utc": "2026-08-26T10:19:20.935697+00:00",
+          "elapsed_s": 34.01308569032699,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "55efb00f26d8e31849f122ca30540a631485f0a4c4a7400a7cee9cdc8874890a",
+            "size_bytes": 16526
+          }
+        },
+        {
+          "round": "B6",
+          "arm": "B",
+          "run_id": "6952e10b-09bf-42e8-97a1-dd97cea429e6",
+          "timestamp_utc": "2026-08-26T10:20:19.277905+00:00",
+          "elapsed_s": 38.620734700001776,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "ac3158ca8bd91ad16e78c9785415416a1f029d871b23af1fb9860531bd8f62e3",
+            "size_bytes": 16529
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 38.6485948599875,
+        "candidate_mean_s": 33.893439260078594,
+        "speedup": 1.1402972287179414,
+        "elapsed_reduction_percent": 12.303566577608926,
+        "paired_speedups": [
+          1.145161729831327,
+          1.1354669509148698
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "embedded_extract_of_previous_sink_comparison",
+        "source_snapshot": {
+          "sha256": "b86f209a0aed384a29c081aa95ecec3f93f7a85177e6f23ac16ea7c8d7bd6598",
+          "size_bytes": 908
+        },
+        "schema_equal": true,
+        "schema": "_text_chunk_mapper_12_out: large_string",
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "candidate_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "ordered_equal": true,
+        "embedded_sink_comparison": {
+          "baseline": {
+            "multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+            "ordered_sha256": "78867f0c0d8316ddacfa8e564b1aea5c4c6f185545542c68c5941c60a97bfc30",
+            "rows": 19981,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "candidate": {
+            "multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+            "ordered_sha256": "78867f0c0d8316ddacfa8e564b1aea5c4c6f185545542c68c5941c60a97bfc30",
+            "rows": 19981,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "equal": true
+        }
+      },
+      "comparison_scope": "incremental_lowering_gain"
+    },
+    {
+      "id": "stand-in-20k-BE",
+      "mode": "stand-in",
+      "dataset": "20k",
+      "optimization": "U03 copyright",
+      "baseline_arm": "B",
+      "candidate_arm": "E",
+      "execution_order": [
+        "B7",
+        "E1",
+        "E2",
+        "B8"
+      ],
+      "samples": [
+        {
+          "round": "B7",
+          "arm": "B",
+          "run_id": "16358ae0-103d-40e0-9018-0292cc52e179",
+          "timestamp_utc": "2026-08-26T10:21:53.977587+00:00",
+          "elapsed_s": 38.72059672977775,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "37a36148db38b56c0db0e948ab0728471d979580461f9e2de575d83dd2996cbf",
+            "size_bytes": 16527
+          }
+        },
+        {
+          "round": "E1",
+          "arm": "E",
+          "run_id": "1ed9dc7c-47dd-4b6a-9ae7-de915977da0e",
+          "timestamp_utc": "2026-08-26T10:22:55.512826+00:00",
+          "elapsed_s": 35.061514909844846,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "2b7c7283dbcbad44a88bc910eab8bf20f74e299b15929ff45ca2c9ae60d75be3",
+            "size_bytes": 16528
+          }
+        },
+        {
+          "round": "E2",
+          "arm": "E",
+          "run_id": "51535944-26a3-44f6-b997-797ea24cad48",
+          "timestamp_utc": "2026-08-26T10:23:59.616986+00:00",
+          "elapsed_s": 34.88669676007703,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "cc72f22a6689f45bc3709011b2a19d478ed45c373ca1b5714891ea29f5088106",
+            "size_bytes": 16524
+          }
+        },
+        {
+          "round": "B8",
+          "arm": "B",
+          "run_id": "b63ce0d6-90be-45fc-b439-40786db60287",
+          "timestamp_utc": "2026-08-26T10:25:01.823978+00:00",
+          "elapsed_s": 38.79210647987202,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "23201ffb7258c747da5111ace2370f9584700da1547f9889896bbf02e89b973c",
+            "size_bytes": 16532
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 38.756351604824886,
+        "candidate_mean_s": 34.97410583496094,
+        "speedup": 1.108144173512597,
+        "elapsed_reduction_percent": 9.759034618194262,
+        "paired_speedups": [
+          1.104361771855599,
+          1.1119455288832099
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "embedded_extract_of_previous_sink_comparison",
+        "source_snapshot": {
+          "sha256": "0e82c0fb2b99b50520d25790dbe6b72a016d0cb7827116b5384d9df163290f1c",
+          "size_bytes": 909
+        },
+        "schema_equal": true,
+        "schema": "_text_chunk_mapper_12_out: large_string",
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "candidate_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "ordered_equal": true,
+        "embedded_sink_comparison": {
+          "baseline": {
+            "multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+            "ordered_sha256": "78867f0c0d8316ddacfa8e564b1aea5c4c6f185545542c68c5941c60a97bfc30",
+            "rows": 19981,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "candidate": {
+            "multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+            "ordered_sha256": "78867f0c0d8316ddacfa8e564b1aea5c4c6f185545542c68c5941c60a97bfc30",
+            "rows": 19981,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "equal": true
+        }
+      },
+      "comparison_scope": "incremental_lowering_gain"
+    },
+    {
+      "id": "stand-in-20k-BF",
+      "mode": "stand-in",
+      "dataset": "20k",
+      "optimization": "U01 + M01 + U03",
+      "baseline_arm": "B",
+      "candidate_arm": "F",
+      "execution_order": [
+        "B9",
+        "F1",
+        "F2",
+        "B10"
+      ],
+      "samples": [
+        {
+          "round": "B9",
+          "arm": "B",
+          "run_id": "c81526d3-3fa6-4b2c-8ffa-1554f52ecd37",
+          "timestamp_utc": "2026-08-26T10:26:45.817796+00:00",
+          "elapsed_s": 38.505813179537654,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "77a6f573be099dab820c29670af851a01381bec8a5fa86fc8b2bc1a072918fd9",
+            "size_bytes": 16532
+          }
+        },
+        {
+          "round": "F1",
+          "arm": "F",
+          "run_id": "edd75bab-1265-44db-8f34-0b6fee848522",
+          "timestamp_utc": "2026-08-26T10:27:49.796217+00:00",
+          "elapsed_s": 26.652240759693086,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "04fca581cf17eefca0c69229162936f96658a27ac3a40d09e4e1b80c632165b0",
+            "size_bytes": 16528
+          }
+        },
+        {
+          "round": "F2",
+          "arm": "F",
+          "run_id": "5f461245-e2aa-4a26-a7c4-ca28648c5fe6",
+          "timestamp_utc": "2026-08-26T10:29:27.632722+00:00",
+          "elapsed_s": 26.770137099549174,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "8c19bc8cef8c9ecde03266813c43aef6cad87180edfb03d7a03b7e8e329c5a25",
+            "size_bytes": 16526
+          }
+        },
+        {
+          "round": "B10",
+          "arm": "B",
+          "run_id": "b0e65415-482b-4057-9dfd-aa1b9cbe880a",
+          "timestamp_utc": "2026-08-26T10:30:39.529679+00:00",
+          "elapsed_s": 38.66377526009455,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "c6eb313e3c0a6e0801d545b0b9ca01ed428c068d039bd21f18c83263f287a25a",
+            "size_bytes": 16529
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 38.584794219816104,
+        "candidate_mean_s": 26.71118892962113,
+        "speedup": 1.444518037796058,
+        "elapsed_reduction_percent": 30.772757844842957,
+        "paired_speedups": [
+          1.4447495625872873,
+          1.4442875326456837
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "embedded_extract_of_previous_sink_comparison",
+        "source_snapshot": {
+          "sha256": "729669108b6910da96204a2fb698146f2aaadbe124169398ffdaa301d552ee16",
+          "size_bytes": 912
+        },
+        "schema_equal": true,
+        "schema": "_text_chunk_mapper_12_out: large_string",
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "candidate_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "ordered_equal": false,
+        "embedded_sink_comparison": {
+          "baseline": {
+            "multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+            "ordered_sha256": "78867f0c0d8316ddacfa8e564b1aea5c4c6f185545542c68c5941c60a97bfc30",
+            "rows": 19981,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "candidate": {
+            "multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+            "ordered_sha256": "492087ea54a082c19a49669bf74b283f0d0bf288bc37e8c863b52d991cebbc43",
+            "rows": 19981,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "equal": true
+        }
+      },
+      "comparison_scope": "incremental_lowering_gain"
+    },
+    {
+      "id": "stand-in-200k-AB",
+      "mode": "stand-in",
+      "dataset": "200k",
+      "optimization": "Existing UDF optimizations only",
+      "comparison_scope": "existing_optimization_gain",
+      "baseline_arm": "A",
+      "candidate_arm": "B",
+      "execution_order": [
+        "A1",
+        "B1",
+        "B2",
+        "A2"
+      ],
+      "samples": [
+        {
+          "round": "A1",
+          "arm": "A",
+          "run_id": "52967075-a0bf-4929-be95-cdc4454129a0",
+          "timestamp_utc": "2026-08-26T10:33:16.443686+00:00",
+          "elapsed_s": 398.5006128801033,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "159e636927fb05790ba3f48c1493b902d83c10e41c8a4e0c7217794f126cd565",
+            "size_bytes": 16460
+          }
+        },
+        {
+          "round": "B1",
+          "arm": "B",
+          "run_id": "0b6cd275-a002-4fc5-a7f9-864a62434c34",
+          "timestamp_utc": "2026-08-26T10:40:15.577418+00:00",
+          "elapsed_s": 297.3703968101181,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "9aea5d68167c074d96da53c22ff88b132dd040cb572b5e01c48672135aa5f970",
+            "size_bytes": 16456
+          }
+        },
+        {
+          "round": "B2",
+          "arm": "B",
+          "run_id": "6f2313d4-87a1-42e4-8141-47365a4abfc5",
+          "timestamp_utc": "2026-08-26T10:45:37.012360+00:00",
+          "elapsed_s": 293.40200308989733,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "70e79135102e2f607f000da9aae081a8ff43bd8b855618e5c8ef0cd23a80bdef",
+            "size_bytes": 16459
+          }
+        },
+        {
+          "round": "A2",
+          "arm": "A",
+          "run_id": "eb4a42a4-5f55-4ce5-bd16-c4a048caa0b6",
+          "timestamp_utc": "2026-08-26T10:51:04.664125+00:00",
+          "elapsed_s": 398.4129156800918,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "a102b6ee550049bcb52fff2e70dc6092eefee388871f593955665938bfb1727e",
+            "size_bytes": 16459
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 398.45676428009756,
+        "candidate_mean_s": 295.3861999500077,
+        "speedup": 1.3489349344943464,
+        "elapsed_reduction_percent": 25.867439975905583,
+        "paired_speedups": [
+          1.3400816528975497,
+          1.357907960696572
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "embedded_extract_of_previous_sink_comparison",
+        "source_snapshot": {
+          "sha256": "f602d84ac59f7dac6717b2075405032d1882fadee18af1c026007830ad78a815",
+          "size_bytes": 913
+        },
+        "schema_equal": true,
+        "schema": "_text_chunk_mapper_12_out: large_string",
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "candidate_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "ordered_equal": false,
+        "embedded_sink_comparison": {
+          "baseline": {
+            "multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+            "ordered_sha256": "05a77910a91b8de5892ce96539fddc689b0e0c94f50335710f5b67a9c415cdd3",
+            "rows": 199765,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "candidate": {
+            "multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+            "ordered_sha256": "4a0af43a777aff79bf6e9d1e311cc32e8520149be404cd93438ced500a4c1dcc",
+            "rows": 199765,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "equal": true
+        }
+      }
+    },
+    {
+      "id": "stand-in-200k-BC",
+      "mode": "stand-in",
+      "dataset": "200k",
+      "optimization": "U01 links",
+      "baseline_arm": "B",
+      "candidate_arm": "C",
+      "execution_order": [
+        "B3",
+        "C1",
+        "C2",
+        "B4"
+      ],
+      "samples": [
+        {
+          "round": "B3",
+          "arm": "B",
+          "run_id": "da5eaa1c-7bd7-40ed-bd9e-b791396d61c2",
+          "timestamp_utc": "2026-08-26T10:58:58.456707+00:00",
+          "elapsed_s": 287.82698100991547,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "d8f2282e1f61a816f370b62b87bf02021a8c504a54f742712d7d606d3df57ffd",
+            "size_bytes": 16455
+          }
+        },
+        {
+          "round": "C1",
+          "arm": "C",
+          "run_id": "10edd16e-bb49-4561-b9e8-cd684de188d2",
+          "timestamp_utc": "2026-08-26T11:04:12.585507+00:00",
+          "elapsed_s": 246.21793662989512,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "0c541860629a6359df4f4559f4c3b860925ddf80c8f6a79ae99f06408f9b9f9b",
+            "size_bytes": 16461
+          }
+        },
+        {
+          "round": "C2",
+          "arm": "C",
+          "run_id": "8248b237-6665-4982-bede-116a509594b8",
+          "timestamp_utc": "2026-08-26T11:08:42.928341+00:00",
+          "elapsed_s": 243.3804135201499,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "8cc8179c8c2dddd92a6d93523b89aa441767fc990d20350ee8d86478d768c54c",
+            "size_bytes": 16460
+          }
+        },
+        {
+          "round": "B4",
+          "arm": "B",
+          "run_id": "a4a6b32e-0cc3-46c2-b94a-acb280899bf8",
+          "timestamp_utc": "2026-08-26T11:13:22.767556+00:00",
+          "elapsed_s": 295.66210444038734,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "846025655cc0eeacc3950a35583c865f931e56c1c844120c0faaa2f0e5fa6931",
+            "size_bytes": 16459
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 291.7445427251514,
+        "candidate_mean_s": 244.7991750750225,
+        "speedup": 1.1917709389165292,
+        "elapsed_reduction_percent": 16.091258198565683,
+        "paired_speedups": [
+          1.1689927425659707,
+          1.214814701660078
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "embedded_extract_of_previous_sink_comparison",
+        "source_snapshot": {
+          "sha256": "105c72008c534685f733f3ceb6cf91ccde1b457660d0303116c5dda0146324d6",
+          "size_bytes": 915
+        },
+        "schema_equal": true,
+        "schema": "_text_chunk_mapper_12_out: large_string",
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "candidate_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "ordered_equal": false,
+        "embedded_sink_comparison": {
+          "baseline": {
+            "multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+            "ordered_sha256": "1d5947dc8003e420aff6838c5b802d8261bccbc55f89eb2c0b8d77d6ad9a2cc7",
+            "rows": 199765,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "candidate": {
+            "multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+            "ordered_sha256": "4a0af43a777aff79bf6e9d1e311cc32e8520149be404cd93438ced500a4c1dcc",
+            "rows": 199765,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "equal": true
+        }
+      },
+      "comparison_scope": "incremental_lowering_gain"
+    },
+    {
+      "id": "stand-in-200k-BD",
+      "mode": "stand-in",
+      "dataset": "200k",
+      "optimization": "M01 language ID",
+      "baseline_arm": "B",
+      "candidate_arm": "D",
+      "execution_order": [
+        "B5",
+        "D1",
+        "D2",
+        "B6"
+      ],
+      "samples": [
+        {
+          "round": "B5",
+          "arm": "B",
+          "run_id": "f6983eee-0d07-4b8b-ba83-b6ef2822fc21",
+          "timestamp_utc": "2026-08-26T11:19:49.725954+00:00",
+          "elapsed_s": 294.0917351595126,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "f6ba6bf091ae0e74cf1fb10c0dd937e520b3d7f294cf5b1ce67934cbc4606539",
+            "size_bytes": 16459
+          }
+        },
+        {
+          "round": "D1",
+          "arm": "D",
+          "run_id": "f65b7518-ef8a-4f2a-93dc-4b06b8923cf2",
+          "timestamp_utc": "2026-08-26T11:25:09.887518+00:00",
+          "elapsed_s": 230.51586590055376,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "566aef9618facc6dcd1d3828dbae4247319aaa7ffbe94969adee319c2eedada3",
+            "size_bytes": 16461
+          }
+        },
+        {
+          "round": "D2",
+          "arm": "D",
+          "run_id": "61ae4d4f-d5a2-4970-9415-9f942d3e1a52",
+          "timestamp_utc": "2026-08-26T11:29:22.020062+00:00",
+          "elapsed_s": 235.22603010991588,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "178c28011e3bc11f6750836bcc91a6088670f553f3aa95a2c95e0b59822681b8",
+            "size_bytes": 16455
+          }
+        },
+        {
+          "round": "B6",
+          "arm": "B",
+          "run_id": "6779be75-0697-45c0-ae9e-78d270af04da",
+          "timestamp_utc": "2026-08-26T11:33:59.001092+00:00",
+          "elapsed_s": 292.79946688981727,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "df25c22021e4daa16266e775ec3055ff7fed2d76b20165958b0533b41f4de306",
+            "size_bytes": 16459
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 293.44560102466494,
+        "candidate_mean_s": 232.87094800523482,
+        "speedup": 1.2601211251910582,
+        "elapsed_reduction_percent": 20.642549354262986,
+        "paired_speedups": [
+          1.275798236319169,
+          1.2447579324150417
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "embedded_extract_of_previous_sink_comparison",
+        "source_snapshot": {
+          "sha256": "c462ee14e053a9509cc76dee488a517d9316fb1c5fd97046a6390afb282f3328",
+          "size_bytes": 915
+        },
+        "schema_equal": true,
+        "schema": "_text_chunk_mapper_12_out: large_string",
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "candidate_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "ordered_equal": false,
+        "embedded_sink_comparison": {
+          "baseline": {
+            "multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+            "ordered_sha256": "e7c7dabeb7923859495f2a2bfa2a4d18a2b7fe3e84b6cb12e077f4a4ed4f8300",
+            "rows": 199765,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "candidate": {
+            "multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+            "ordered_sha256": "1d5947dc8003e420aff6838c5b802d8261bccbc55f89eb2c0b8d77d6ad9a2cc7",
+            "rows": 199765,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "equal": true
+        }
+      },
+      "comparison_scope": "incremental_lowering_gain"
+    },
+    {
+      "id": "stand-in-200k-BE",
+      "mode": "stand-in",
+      "dataset": "200k",
+      "optimization": "U03 copyright",
+      "baseline_arm": "B",
+      "candidate_arm": "E",
+      "execution_order": [
+        "B7",
+        "E1",
+        "E2",
+        "B8"
+      ],
+      "samples": [
+        {
+          "round": "B7",
+          "arm": "B",
+          "run_id": "8e24a0d5-fa50-43cc-b807-3619b7d412bd",
+          "timestamp_utc": "2026-08-26T14:41:14.461554+00:00",
+          "elapsed_s": 293.4242855999619,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "a0d71c14e2161c7fe73589e21e56e5cf7a33a187e027ffc1ca9951469c49e0f7",
+            "size_bytes": 16459
+          }
+        },
+        {
+          "round": "E1",
+          "arm": "E",
+          "run_id": "84bdaab4-3ca2-45fb-a266-dea2fd5ec585",
+          "timestamp_utc": "2026-08-26T14:46:41.689416+00:00",
+          "elapsed_s": 236.71766104968265,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "af8cb27c46f41d13042b825cefbbc8134a5e9bdc928153da0db52cc6997d881f",
+            "size_bytes": 16464
+          }
+        },
+        {
+          "round": "E2",
+          "arm": "E",
+          "run_id": "8bbdaa2d-8007-4b25-a5c5-b69bdad4ba1b",
+          "timestamp_utc": "2026-08-26T14:51:27.620541+00:00",
+          "elapsed_s": 238.4742080802098,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "ddeca799836a221c3b25f6847e646751e4a33dc9a15200ca26b1a30f6924ac8d",
+            "size_bytes": 16460
+          }
+        },
+        {
+          "round": "B8",
+          "arm": "B",
+          "run_id": "09b66f21-ec4c-488b-a5d0-29dbdd960da3",
+          "timestamp_utc": "2026-08-26T14:55:51.153662+00:00",
+          "elapsed_s": 293.71199308987707,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "058df15e3204733099a4f6ca9f88bcff32e722d3f5936655d61b5561e4a86ce9",
+            "size_bytes": 16458
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 293.5681393449195,
+        "candidate_mean_s": 237.59593456494622,
+        "speedup": 1.2355772832664922,
+        "elapsed_reduction_percent": 19.066171453370938,
+        "paired_speedups": [
+          1.2395538393663732,
+          1.2316300175786234
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "embedded_extract_of_previous_sink_comparison",
+        "source_snapshot": {
+          "sha256": "7a046d21fbc8998a49e967e7a9062ad5572f8cc2fdc46bb6611815f321d9dff6",
+          "size_bytes": 914
+        },
+        "schema_equal": true,
+        "schema": "_text_chunk_mapper_12_out: large_string",
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "candidate_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "ordered_equal": false,
+        "embedded_sink_comparison": {
+          "baseline": {
+            "multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+            "ordered_sha256": "36ad6715d518a1f5b70f5ce5a08951be7368be476719dac5027a7a937dd1b643",
+            "rows": 199765,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "candidate": {
+            "multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+            "ordered_sha256": "ab46ff7d9bcfb05bcc213922eb7c3a3c372b88095f985e4ae71d5f74928f9c69",
+            "rows": 199765,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "equal": true
+        }
+      },
+      "comparison_scope": "incremental_lowering_gain"
+    },
+    {
+      "id": "stand-in-200k-BG",
+      "mode": "stand-in",
+      "dataset": "200k",
+      "optimization": "U01 + U03",
+      "comparison_scope": "incremental_lowering_gain",
+      "baseline_arm": "B",
+      "candidate_arm": "G",
+      "execution_order": [
+        "B11",
+        "G1",
+        "G2",
+        "B12"
+      ],
+      "samples": [
+        {
+          "round": "B11",
+          "arm": "B",
+          "run_id": "3ae49436-6e76-45c0-a61a-0d35a3f08a14",
+          "timestamp_utc": "2026-08-27T10:46:35.796570+00:00",
+          "elapsed_s": 291.1324022402987,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "06642dcd8097d24e6fc2752aa7e79b1d8fdadb2648ecdfc5acfe6380fba0c227",
+            "size_bytes": 16458
+          }
+        },
+        {
+          "round": "G1",
+          "arm": "G",
+          "run_id": "3f26bb91-422a-4230-aec0-f87152da7659",
+          "timestamp_utc": "2026-08-27T10:51:32.564170+00:00",
+          "elapsed_s": 207.99058063980192,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "fafd95c34a99cd5f328c39071870b5bcec5e40faeb31c7c28c45c692c9d7a12e",
+            "size_bytes": 16450
+          }
+        },
+        {
+          "round": "G2",
+          "arm": "G",
+          "run_id": "0b48249a-04a6-4d26-8475-fe5774547626",
+          "timestamp_utc": "2026-08-27T10:55:06.000668+00:00",
+          "elapsed_s": 210.34327278006822,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "ad319b4dc44d5ad9631adad46e6d3b9cddd19fdd016930aac51aeb5005313b98",
+            "size_bytes": 16448
+          }
+        },
+        {
+          "round": "B12",
+          "arm": "B",
+          "run_id": "699bc5d2-263a-46f3-97b4-e6b01a4bd34e",
+          "timestamp_utc": "2026-08-27T10:58:41.817620+00:00",
+          "elapsed_s": 292.588436009828,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "66b7ad4b6e7d4bf1b78875a3d49266246c8c65967afe578b04c0e5e8029772a6",
+            "size_bytes": 16460
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 291.86041912506334,
+        "candidate_mean_s": 209.16692670993507,
+        "speedup": 1.3953468825872484,
+        "elapsed_reduction_percent": 28.333232941632204,
+        "paired_speedups": [
+          1.399738398463735,
+          1.391004485870837
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "recorded_result_not_independently_rechecked_from_output",
+        "source_snapshots": [
+          {
+            "sha256": "f49c98216b8104b927c39692a6067bd7dd0309e0533f6d90471b24f7a855692a",
+            "size_bytes": 17957
+          },
+          {
+            "sha256": "b69197963548f84afcb1af0ab697dcac8f79bf74ef21a8ba9f0e9164a3b6c512",
+            "size_bytes": 894
+          }
+        ],
+        "schema_equal": true,
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "candidate_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "ordered_equal": null,
+        "note": "Schema and multiset equality are recorded results; full output values are not included and were not re-compared during this extraction."
+      }
+    },
+    {
+      "id": "stand-in-200k-BF",
+      "mode": "stand-in",
+      "dataset": "200k",
+      "optimization": "U01 + M01 + U03",
+      "baseline_arm": "B",
+      "candidate_arm": "F",
+      "execution_order": [
+        "B9",
+        "F1",
+        "F2",
+        "B10"
+      ],
+      "samples": [
+        {
+          "round": "B9",
+          "arm": "B",
+          "run_id": "4315fd94-20dc-4cd1-865c-6fef9423c49b",
+          "timestamp_utc": "2026-08-26T15:02:47.891754+00:00",
+          "elapsed_s": 293.24750795960426,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "a96651d7a020449a24ba9ccaa841171209bdbcdeb134561a34a7e652bcba079e",
+            "size_bytes": 16460
+          }
+        },
+        {
+          "round": "F1",
+          "arm": "F",
+          "run_id": "d9ca85cc-ed2e-42f0-bb45-bcca01aea976",
+          "timestamp_utc": "2026-08-26T15:08:13.724476+00:00",
+          "elapsed_s": 157.20465224981308,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "671753f73cb7ed2ee8aa3f7b1220c08bc30d307065613820964c0ad9bd188ff8",
+            "size_bytes": 16461
+          }
+        },
+        {
+          "round": "F2",
+          "arm": "F",
+          "run_id": "6b9df5f2-503e-4db2-8b67-d9b4d67f09b0",
+          "timestamp_utc": "2026-08-26T15:11:45.641063+00:00",
+          "elapsed_s": 156.81138645065948,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "c542518f6c543a1a4a3528fc6cc211e770768382846af79766b21e5f1da5251b",
+            "size_bytes": 16462
+          }
+        },
+        {
+          "round": "B10",
+          "arm": "B",
+          "run_id": "796a6a0c-921c-4a5b-ad11-522a7afe2f0d",
+          "timestamp_utc": "2026-08-26T15:15:03.512981+00:00",
+          "elapsed_s": 295.63785549998283,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "d5db13e4149387528a02f411faed00a37a1c918ab03be91dd5362ddaa8f9fb5b",
+            "size_bytes": 16462
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 294.44268172979355,
+        "candidate_mean_s": 157.00801935023628,
+        "speedup": 1.8753353041985905,
+        "elapsed_reduction_percent": 46.676202503032286,
+        "paired_speedups": [
+          1.865386957464886,
+          1.8853086002973702
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "embedded_extract_of_previous_sink_comparison",
+        "source_snapshot": {
+          "sha256": "d3c233ab106b39571d732a6d3a4581ae0e5abcd8a1e8ffce8d7d1f1226ea880c",
+          "size_bytes": 917
+        },
+        "schema_equal": true,
+        "schema": "_text_chunk_mapper_12_out: large_string",
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "candidate_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "ordered_equal": false,
+        "embedded_sink_comparison": {
+          "baseline": {
+            "multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+            "ordered_sha256": "454d7caeb9ab7d6c06cf8bfab29326c5d1dcf184171403c1b2f351a6180a0826",
+            "rows": 199765,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "candidate": {
+            "multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+            "ordered_sha256": "1d5947dc8003e420aff6838c5b802d8261bccbc55f89eb2c0b8d77d6ad9a2cc7",
+            "rows": 199765,
+            "schema": "_text_chunk_mapper_12_out: large_string"
+          },
+          "equal": true
+        }
+      },
+      "comparison_scope": "incremental_lowering_gain"
+    },
+    {
+      "id": "real-kenlm-20k-AB",
+      "mode": "real-kenlm",
+      "dataset": "20k",
+      "optimization": "Existing UDF optimizations only",
+      "comparison_scope": "existing_optimization_gain",
+      "baseline_arm": "A",
+      "candidate_arm": "B",
+      "execution_order": [
+        "A1",
+        "B1",
+        "B2",
+        "A2"
+      ],
+      "samples": [
+        {
+          "round": "A1",
+          "arm": "A",
+          "run_id": "59707526-6892-480c-959b-a8f0e1f98491",
+          "timestamp_utc": "2026-08-26T17:28:08.911275+00:00",
+          "elapsed_s": 78.98914245003834,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "98a9fcebd4a989cd43771cb5d5ac4ac18fdbf972e679594362f42dc61cfcf177",
+            "size_bytes": 16583
+          }
+        },
+        {
+          "round": "B1",
+          "arm": "B",
+          "run_id": "93a70a37-7156-4879-bb74-27eb42fd6b57",
+          "timestamp_utc": "2026-08-26T17:30:01.341571+00:00",
+          "elapsed_s": 69.83687200956047,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "db6f4d82dcd259cbd965f7321a63699f60610742d8bac33b59f3a8d29f4ca29e",
+            "size_bytes": 16577
+          }
+        },
+        {
+          "round": "B2",
+          "arm": "B",
+          "run_id": "0fe96bcd-78e6-42a1-9c7b-5ce532cd4341",
+          "timestamp_utc": "2026-08-26T17:31:43.209849+00:00",
+          "elapsed_s": 71.10596451023594,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "6e0732e65a9a85334d20fd635b6c902a09e69b8a5319d9be508a516d2a3e58f1",
+            "size_bytes": 16579
+          }
+        },
+        {
+          "round": "A2",
+          "arm": "A",
+          "run_id": "5efe71c8-114d-4b01-b291-7f9c40bb731f",
+          "timestamp_utc": "2026-08-26T17:33:51.172593+00:00",
+          "elapsed_s": 79.05761713022366,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "aed57d5e39ab76bbcb0c5357212bddd33d5856b56d9478c8bb977e68cca45449",
+            "size_bytes": 16578
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 79.023379790131,
+        "candidate_mean_s": 70.4714182598982,
+        "speedup": 1.1213536174154068,
+        "elapsed_reduction_percent": 10.822065005249026,
+        "paired_speedups": [
+          1.131052124431131,
+          1.1118282084317
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "recorded_result_not_independently_rechecked_from_output",
+        "source_snapshots": [
+          {
+            "sha256": "f49c98216b8104b927c39692a6067bd7dd0309e0533f6d90471b24f7a855692a",
+            "size_bytes": 17957
+          },
+          {
+            "sha256": "20755917d220f1fd2733a70ef4e057bc8c106da1c8457ca13887163b314e88a0",
+            "size_bytes": 1507
+          }
+        ],
+        "schema_equal": true,
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "candidate_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "ordered_equal": null,
+        "note": "Schema and multiset equality are recorded results; full output values are not included and were not re-compared during this extraction."
+      }
+    },
+    {
+      "id": "real-kenlm-20k-BC",
+      "mode": "real-kenlm",
+      "dataset": "20k",
+      "optimization": "U01 links",
+      "baseline_arm": "B",
+      "candidate_arm": "C",
+      "execution_order": [
+        "B3",
+        "C1",
+        "C2",
+        "B4"
+      ],
+      "samples": [
+        {
+          "round": "B3",
+          "arm": "B",
+          "run_id": "8a4b3d3c-a1fd-4a22-9a6c-a0c087c2a388",
+          "timestamp_utc": "2026-08-26T17:36:46.071564+00:00",
+          "elapsed_s": 69.9177992399782,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "563e33477a5cfd7a6a8830b2acf6ec258b8b1941c01f5143c40b0e602eb938d5",
+            "size_bytes": 16580
+          }
+        },
+        {
+          "round": "C1",
+          "arm": "C",
+          "run_id": "7a46f3a3-5eed-4a27-a4b0-7e9d5e48fd9c",
+          "timestamp_utc": "2026-08-26T17:38:55.244699+00:00",
+          "elapsed_s": 67.26870200037956,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "0ce7565b73baf78b03006ba020f7a9b016f5b76206aedca7d9f47ccddab6749f",
+            "size_bytes": 16579
+          }
+        },
+        {
+          "round": "C2",
+          "arm": "C",
+          "run_id": "b9005622-0ef1-4f56-ad7e-f588288e01b0",
+          "timestamp_utc": "2026-08-26T17:41:06.308346+00:00",
+          "elapsed_s": 67.2079639500007,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "32934d510cefa9f644f737e4cf18f552379d63df36dac8ce443b2ea093bf5a63",
+            "size_bytes": 16581
+          }
+        },
+        {
+          "round": "B4",
+          "arm": "B",
+          "run_id": "077a853e-90f2-453f-845e-1236cc539c84",
+          "timestamp_utc": "2026-08-26T17:42:52.536115+00:00",
+          "elapsed_s": 70.85755668999627,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "ead13b79d5be5617f2ac37cf096c815f089b65107f3eb1364b1a05194306aa6c",
+            "size_bytes": 16583
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 70.38767796498723,
+        "candidate_mean_s": 67.23833297519013,
+        "speedup": 1.0468385346638376,
+        "elapsed_reduction_percent": 4.474284535091034,
+        "paired_speedups": [
+          1.0393808288375133,
+          1.0543029802645216
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "recorded_result_not_independently_rechecked_from_output",
+        "source_snapshots": [
+          {
+            "sha256": "f49c98216b8104b927c39692a6067bd7dd0309e0533f6d90471b24f7a855692a",
+            "size_bytes": 17957
+          },
+          {
+            "sha256": "20755917d220f1fd2733a70ef4e057bc8c106da1c8457ca13887163b314e88a0",
+            "size_bytes": 1507
+          }
+        ],
+        "schema_equal": true,
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "candidate_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "ordered_equal": null,
+        "note": "Schema and multiset equality are recorded results; full output values are not included and were not re-compared during this extraction."
+      },
+      "comparison_scope": "incremental_lowering_gain"
+    },
+    {
+      "id": "real-kenlm-20k-BD",
+      "mode": "real-kenlm",
+      "dataset": "20k",
+      "optimization": "M01 language ID",
+      "baseline_arm": "B",
+      "candidate_arm": "D",
+      "execution_order": [
+        "B5",
+        "D1",
+        "D2",
+        "B6"
+      ],
+      "samples": [
+        {
+          "round": "B5",
+          "arm": "B",
+          "run_id": "e3fc3368-d6b7-43f5-b4f3-71cbab07494c",
+          "timestamp_utc": "2026-08-26T17:45:10.984148+00:00",
+          "elapsed_s": 70.67089917976409,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "e3a7464ca558be5efbfac13a5b81d98a47aaba4c872342f3b102b3cfb12a5e4b",
+            "size_bytes": 16583
+          }
+        },
+        {
+          "round": "D1",
+          "arm": "D",
+          "run_id": "60484290-3ca2-4aa6-ac77-09214cecc016",
+          "timestamp_utc": "2026-08-26T17:47:33.489438+00:00",
+          "elapsed_s": 65.52525593014434,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "e9fc7159e42aa022e781041cadb395cfa5b67b8013913b2eeace460c676f58cc",
+            "size_bytes": 16584
+          }
+        },
+        {
+          "round": "D2",
+          "arm": "D",
+          "run_id": "af5cf68b-76c1-4e2a-baa5-79019a02f5d5",
+          "timestamp_utc": "2026-08-26T17:49:08.649029+00:00",
+          "elapsed_s": 66.0609510098584,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "6d142cfd65f7b2d3b0ba651e15ceed1cf1b3d066320a68b9899cec5ebbb5005f",
+            "size_bytes": 16579
+          }
+        },
+        {
+          "round": "B6",
+          "arm": "B",
+          "run_id": "179c4e65-4b84-4435-9b46-2757b183cdf5",
+          "timestamp_utc": "2026-08-26T17:50:46.212749+00:00",
+          "elapsed_s": 70.89470604015514,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "c60aada75f7522de4671bb6b107973b554022628cace8c63af97389b2968b32b",
+            "size_bytes": 16579
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 70.78280260995962,
+        "candidate_mean_s": 65.79310347000137,
+        "speedup": 1.0758392426682428,
+        "elapsed_reduction_percent": 7.049309939666282,
+        "paired_speedups": [
+          1.07852915912462,
+          1.073171139022437
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "recorded_result_not_independently_rechecked_from_output",
+        "source_snapshots": [
+          {
+            "sha256": "f49c98216b8104b927c39692a6067bd7dd0309e0533f6d90471b24f7a855692a",
+            "size_bytes": 17957
+          },
+          {
+            "sha256": "20755917d220f1fd2733a70ef4e057bc8c106da1c8457ca13887163b314e88a0",
+            "size_bytes": 1507
+          }
+        ],
+        "schema_equal": true,
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "candidate_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "ordered_equal": null,
+        "note": "Schema and multiset equality are recorded results; full output values are not included and were not re-compared during this extraction."
+      },
+      "comparison_scope": "incremental_lowering_gain"
+    },
+    {
+      "id": "real-kenlm-20k-BE",
+      "mode": "real-kenlm",
+      "dataset": "20k",
+      "optimization": "U03 copyright",
+      "baseline_arm": "B",
+      "candidate_arm": "E",
+      "execution_order": [
+        "B7",
+        "E1",
+        "E2",
+        "B8"
+      ],
+      "samples": [
+        {
+          "round": "B7",
+          "arm": "B",
+          "run_id": "13e1908b-2e3b-4fdc-986b-56ca4300e9e4",
+          "timestamp_utc": "2026-08-26T17:53:29.438181+00:00",
+          "elapsed_s": 70.50745456013829,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "523efa9c7cbfdf4e0a925ce2d7bf2e43d16cfcd3e85305c7770e067d3b95f74a",
+            "size_bytes": 16582
+          }
+        },
+        {
+          "round": "E1",
+          "arm": "E",
+          "run_id": "a03b938b-c45d-4a23-8626-1fd8592da48d",
+          "timestamp_utc": "2026-08-26T17:55:07.049581+00:00",
+          "elapsed_s": 67.05012570973486,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "fa1795c8720c548aaa8a24e1c1c0c31294c8e8f6e513855587e3d2a483577d76",
+            "size_bytes": 16582
+          }
+        },
+        {
+          "round": "E2",
+          "arm": "E",
+          "run_id": "896b9739-d774-4e71-9d83-e6234f31d921",
+          "timestamp_utc": "2026-08-26T17:56:53.073048+00:00",
+          "elapsed_s": 67.10819758009166,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "07f4b4a328fcad15e034db8b70fc142a08c7f9f7686ba98bea9886315e4a4342",
+            "size_bytes": 16580
+          }
+        },
+        {
+          "round": "B8",
+          "arm": "B",
+          "run_id": "8e634f62-5676-4bb3-8016-e6d668aabe76",
+          "timestamp_utc": "2026-08-26T17:58:45.203508+00:00",
+          "elapsed_s": 70.07361371954903,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "81ad87b31e27e278bcdb0bd576b83feef7fade27515e6b1c80a177096827e323",
+            "size_bytes": 16583
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 70.29053413984366,
+        "candidate_mean_s": 67.07916164491326,
+        "speedup": 1.0478743683758296,
+        "elapsed_reduction_percent": 4.568712607221547,
+        "paired_speedups": [
+          1.0515633462846956,
+          1.0441885827125403
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "recorded_result_not_independently_rechecked_from_output",
+        "source_snapshots": [
+          {
+            "sha256": "f49c98216b8104b927c39692a6067bd7dd0309e0533f6d90471b24f7a855692a",
+            "size_bytes": 17957
+          },
+          {
+            "sha256": "20755917d220f1fd2733a70ef4e057bc8c106da1c8457ca13887163b314e88a0",
+            "size_bytes": 1507
+          }
+        ],
+        "schema_equal": true,
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "candidate_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "ordered_equal": null,
+        "note": "Schema and multiset equality are recorded results; full output values are not included and were not re-compared during this extraction."
+      },
+      "comparison_scope": "incremental_lowering_gain"
+    },
+    {
+      "id": "real-kenlm-20k-BF",
+      "mode": "real-kenlm",
+      "dataset": "20k",
+      "optimization": "U01 + M01 + U03",
+      "baseline_arm": "B",
+      "candidate_arm": "F",
+      "execution_order": [
+        "B9",
+        "F1",
+        "F2",
+        "B10"
+      ],
+      "samples": [
+        {
+          "round": "B9",
+          "arm": "B",
+          "run_id": "5e9080da-f55e-4032-a535-cb073466baed",
+          "timestamp_utc": "2026-08-26T18:01:01.772165+00:00",
+          "elapsed_s": 70.86567923007533,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "aac97dc63b811102091cdf3c01e1a07d708f87ff765b28248c961640fc0685a3",
+            "size_bytes": 16582
+          }
+        },
+        {
+          "round": "F1",
+          "arm": "F",
+          "run_id": "4731acde-9ddd-497f-89c9-a72b989e4fd4",
+          "timestamp_utc": "2026-08-26T18:02:53.951096+00:00",
+          "elapsed_s": 58.48509398009628,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "3becbd8f2e3b08fc318f98855baceb96060b85e312f0009a33bd5c77f4e078d6",
+            "size_bytes": 16585
+          }
+        },
+        {
+          "round": "F2",
+          "arm": "F",
+          "run_id": "048de3df-557b-432e-acf4-be0aab0135f7",
+          "timestamp_utc": "2026-08-26T18:04:35.781450+00:00",
+          "elapsed_s": 58.45629059989005,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "a13b0a508e2eb42a7d07a785722e9b9ea6c5b9f94610cc29de79b901c46792b7",
+            "size_bytes": 16583
+          }
+        },
+        {
+          "round": "B10",
+          "arm": "B",
+          "run_id": "51076633-af99-40f3-8619-94b88dc4963f",
+          "timestamp_utc": "2026-08-26T18:11:07.636407+00:00",
+          "elapsed_s": 70.45200258027762,
+          "status": "ok",
+          "input_rows": 20000,
+          "output_rows": 19981,
+          "source_snapshot": {
+            "sha256": "d39d26c551b735315ea3449344b9e4c68fd96ea51960f10bb86092ea2b02a617",
+            "size_bytes": 16583
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 70.65884090517648,
+        "candidate_mean_s": 58.47069228999317,
+        "speedup": 1.208448850831705,
+        "elapsed_reduction_percent": 17.24929033514673,
+        "paired_speedups": [
+          1.2116878747633102,
+          1.2052082309240835
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "recorded_result_not_independently_rechecked_from_output",
+        "source_snapshots": [
+          {
+            "sha256": "f49c98216b8104b927c39692a6067bd7dd0309e0533f6d90471b24f7a855692a",
+            "size_bytes": 17957
+          },
+          {
+            "sha256": "20755917d220f1fd2733a70ef4e057bc8c106da1c8457ca13887163b314e88a0",
+            "size_bytes": 1507
+          }
+        ],
+        "schema_equal": true,
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "candidate_multiset_sha256": "b40820f0745554f30ab7248a54bfa4f8d30d7004e906c487686ceb0a73879d16",
+        "ordered_equal": null,
+        "note": "Schema and multiset equality are recorded results; full output values are not included and were not re-compared during this extraction."
+      },
+      "comparison_scope": "incremental_lowering_gain"
+    },
+    {
+      "id": "real-kenlm-200k-AB",
+      "mode": "real-kenlm",
+      "dataset": "200k",
+      "optimization": "Existing UDF optimizations only",
+      "comparison_scope": "existing_optimization_gain",
+      "baseline_arm": "A",
+      "candidate_arm": "B",
+      "execution_order": [
+        "A1",
+        "B1",
+        "B2",
+        "A2"
+      ],
+      "samples": [
+        {
+          "round": "A1",
+          "arm": "A",
+          "run_id": "8d4bc34e-3a75-4ae5-8307-fd1b810f6ef5",
+          "timestamp_utc": "2026-08-26T18:13:21.156747+00:00",
+          "elapsed_s": 708.8444357300177,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "f36838145bc179f7497073ada33d419441195ff4ceef56e4971094e95f00adfd",
+            "size_bytes": 16515
+          }
+        },
+        {
+          "round": "B1",
+          "arm": "B",
+          "run_id": "277bf361-c6d8-4e0a-8770-fea7c74be5f8",
+          "timestamp_utc": "2026-08-26T18:27:37.463731+00:00",
+          "elapsed_s": 603.0823411899619,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "3c51339bc9eb83e88f285e2037755af2a863bb91010023c88a934767d80cf89f",
+            "size_bytes": 16515
+          }
+        },
+        {
+          "round": "B2",
+          "arm": "B",
+          "run_id": "6fdfec3d-67ce-4885-b3b3-eeceab5a8f9a",
+          "timestamp_utc": "2026-08-26T18:37:46.004315+00:00",
+          "elapsed_s": 596.9423963297158,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "dca104217f095c8c1c77166ab5a4d325b7afbd25e3b2421297f3fb88b856d29d",
+            "size_bytes": 16516
+          }
+        },
+        {
+          "round": "A2",
+          "arm": "A",
+          "run_id": "622ef81c-4be1-4ac0-b804-8129ec9c21dc",
+          "timestamp_utc": "2026-08-26T18:47:48.443618+00:00",
+          "elapsed_s": 704.0589604405686,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "dbfdac628c7758ade6accca19778a3f121d399692382bf195bd2fdcb3d359d7e",
+            "size_bytes": 16513
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 706.4516980852932,
+        "candidate_mean_s": 600.0123687598389,
+        "speedup": 1.177395225277527,
+        "elapsed_reduction_percent": 15.066752562693031,
+        "paired_speedups": [
+          1.175369244490517,
+          1.179442044608418
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "recorded_result_not_independently_rechecked_from_output",
+        "source_snapshots": [
+          {
+            "sha256": "f49c98216b8104b927c39692a6067bd7dd0309e0533f6d90471b24f7a855692a",
+            "size_bytes": 17957
+          },
+          {
+            "sha256": "20755917d220f1fd2733a70ef4e057bc8c106da1c8457ca13887163b314e88a0",
+            "size_bytes": 1507
+          }
+        ],
+        "schema_equal": true,
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "candidate_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "ordered_equal": null,
+        "note": "Schema and multiset equality are recorded results; full output values are not included and were not re-compared during this extraction."
+      }
+    },
+    {
+      "id": "real-kenlm-200k-BC",
+      "mode": "real-kenlm",
+      "dataset": "200k",
+      "optimization": "U01 links",
+      "baseline_arm": "B",
+      "candidate_arm": "C",
+      "execution_order": [
+        "B3",
+        "C1",
+        "C2",
+        "B4"
+      ],
+      "samples": [
+        {
+          "round": "B3",
+          "arm": "B",
+          "run_id": "663a6641-850a-4b4b-8532-3804f58caa90",
+          "timestamp_utc": "2026-08-26T18:59:37.600735+00:00",
+          "elapsed_s": 596.9470269498415,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "bcf8c94d5780e9577b0726c1ccbeb9d49f4f1ad6257b0a969aecba92990e9504",
+            "size_bytes": 16517
+          }
+        },
+        {
+          "round": "C1",
+          "arm": "C",
+          "run_id": "923c03cf-fe0e-4d6d-99dc-9b05e6675c49",
+          "timestamp_utc": "2026-08-26T19:09:40.248088+00:00",
+          "elapsed_s": 562.6552710803226,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "9a571aa2c39573326b3b549f253ed7cf986f0e0dc4cad7c643b563d3149a75af",
+            "size_bytes": 16514
+          }
+        },
+        {
+          "round": "C2",
+          "arm": "C",
+          "run_id": "e34d801c-e883-4025-a706-6e65219fe106",
+          "timestamp_utc": "2026-08-26T19:19:08.316315+00:00",
+          "elapsed_s": 567.4593415195122,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "fb9b3003c4ceb23264af3b96c3fc804db6c0859065d9a4c6c5d1fe5623909053",
+            "size_bytes": 16515
+          }
+        },
+        {
+          "round": "B4",
+          "arm": "B",
+          "run_id": "15af4b3b-fb44-4adb-8dc9-5b74c4c0991f",
+          "timestamp_utc": "2026-08-26T19:28:41.193481+00:00",
+          "elapsed_s": 598.3047354002483,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "03b55f22e25382dff2e123535adf83e129be4a1c14636862bfc57c9222ee2cc3",
+            "size_bytes": 16511
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 597.6258811750449,
+        "candidate_mean_s": 565.0573062999174,
+        "speedup": 1.0576376493357666,
+        "elapsed_reduction_percent": 5.449659377383654,
+        "paired_speedups": [
+          1.0609462980835092,
+          1.0543570113730791
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "recorded_result_not_independently_rechecked_from_output",
+        "source_snapshots": [
+          {
+            "sha256": "f49c98216b8104b927c39692a6067bd7dd0309e0533f6d90471b24f7a855692a",
+            "size_bytes": 17957
+          },
+          {
+            "sha256": "20755917d220f1fd2733a70ef4e057bc8c106da1c8457ca13887163b314e88a0",
+            "size_bytes": 1507
+          }
+        ],
+        "schema_equal": true,
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "candidate_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "ordered_equal": null,
+        "note": "Schema and multiset equality are recorded results; full output values are not included and were not re-compared during this extraction."
+      },
+      "comparison_scope": "incremental_lowering_gain"
+    },
+    {
+      "id": "real-kenlm-200k-BD",
+      "mode": "real-kenlm",
+      "dataset": "200k",
+      "optimization": "M01 language ID",
+      "baseline_arm": "B",
+      "candidate_arm": "D",
+      "execution_order": [
+        "B5",
+        "D1",
+        "D2",
+        "B6"
+      ],
+      "samples": [
+        {
+          "round": "B5",
+          "arm": "B",
+          "run_id": "fe84bef9-3fb8-45a4-85c7-3a563b9a7fc7",
+          "timestamp_utc": "2026-08-26T19:38:45.244825+00:00",
+          "elapsed_s": 604.8558996799402,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "700b7bc641345fa9876f3e2c7f990233a903030ab324ee55c50a1bba0ddc71ce",
+            "size_bytes": 16511
+          }
+        },
+        {
+          "round": "D1",
+          "arm": "D",
+          "run_id": "240a1c58-0b4f-4be7-a931-ef53972f9562",
+          "timestamp_utc": "2026-08-26T19:48:55.782003+00:00",
+          "elapsed_s": 499.20124656008556,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "d2f0e8043a4f6057e856abe05b81cae891ed3ed77d454fe1df5bd57277b237d4",
+            "size_bytes": 16517
+          }
+        },
+        {
+          "round": "D2",
+          "arm": "D",
+          "run_id": "622d01c7-491f-45a7-beae-0af2e8a22798",
+          "timestamp_utc": "2026-08-26T19:57:20.689318+00:00",
+          "elapsed_s": 495.65601463010535,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "0e1844fbfb998bdcf0401c6152beb46c346a1c184e4a62e45868cc6ac6ea2426",
+            "size_bytes": 16514
+          }
+        },
+        {
+          "round": "B6",
+          "arm": "B",
+          "run_id": "3aa7fe93-d9d9-4d95-ac81-527fe130da6a",
+          "timestamp_utc": "2026-08-26T20:05:42.001702+00:00",
+          "elapsed_s": 605.6489336495288,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "727ba1c6f6e032db164380359957c56bca581d987fa59886c85cf33948a4f1a8",
+            "size_bytes": 16516
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 605.2524166647345,
+        "candidate_mean_s": 497.42863059509546,
+        "speedup": 1.2167623241562207,
+        "elapsed_reduction_percent": 17.814680801078985,
+        "paired_speedups": [
+          1.2116474144403757,
+          1.2219138188033654
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "recorded_result_not_independently_rechecked_from_output",
+        "source_snapshots": [
+          {
+            "sha256": "f49c98216b8104b927c39692a6067bd7dd0309e0533f6d90471b24f7a855692a",
+            "size_bytes": 17957
+          },
+          {
+            "sha256": "20755917d220f1fd2733a70ef4e057bc8c106da1c8457ca13887163b314e88a0",
+            "size_bytes": 1507
+          }
+        ],
+        "schema_equal": true,
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "candidate_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "ordered_equal": null,
+        "note": "Schema and multiset equality are recorded results; full output values are not included and were not re-compared during this extraction."
+      },
+      "comparison_scope": "incremental_lowering_gain"
+    },
+    {
+      "id": "real-kenlm-200k-BE",
+      "mode": "real-kenlm",
+      "dataset": "200k",
+      "optimization": "U03 copyright",
+      "baseline_arm": "B",
+      "candidate_arm": "E",
+      "execution_order": [
+        "B7",
+        "E1",
+        "E2",
+        "B8"
+      ],
+      "samples": [
+        {
+          "round": "B7",
+          "arm": "B",
+          "run_id": "7910e6e6-dd78-4062-a645-ad209adffe26",
+          "timestamp_utc": "2026-08-26T20:15:53.060468+00:00",
+          "elapsed_s": 598.4179393299855,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "9f9dfa1f956b8ced67c723883a509e32912d3f6f8fe3662460ab14fc4de810f7",
+            "size_bytes": 16514
+          }
+        },
+        {
+          "round": "E1",
+          "arm": "E",
+          "run_id": "69dcb5eb-2271-4053-ba25-c8426c1d92bd",
+          "timestamp_utc": "2026-08-26T20:25:57.173294+00:00",
+          "elapsed_s": 553.0644109598361,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "bbf11f5dc086a017823681333fee370978d5078bf230019acd70b3ec132d7f94",
+            "size_bytes": 16508
+          }
+        },
+        {
+          "round": "E2",
+          "arm": "E",
+          "run_id": "bd8bc6e8-c7ac-4254-9b83-9c3dcaf57765",
+          "timestamp_utc": "2026-08-26T20:35:15.920342+00:00",
+          "elapsed_s": 558.4926045793109,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "fe790dc572ec586761acfcd0870705ada3c5930bf5193fc6adab1ff3b153a9fe",
+            "size_bytes": 16515
+          }
+        },
+        {
+          "round": "B8",
+          "arm": "B",
+          "run_id": "8385908e-33cf-4bcb-becd-e4bfa8b1211b",
+          "timestamp_utc": "2026-08-26T20:44:40.123828+00:00",
+          "elapsed_s": 592.2189213605598,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "660dd30e72c05926e4f76c4ca61ec61b98ab7d3394a0bda3f4acf5464381bc08",
+            "size_bytes": 16509
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 595.3184303452726,
+        "candidate_mean_s": 555.7785077695735,
+        "speedup": 1.0711433098310676,
+        "elapsed_reduction_percent": 6.641810594166686,
+        "paired_speedups": [
+          1.0820040622238538,
+          1.0603881170577962
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "recorded_result_not_independently_rechecked_from_output",
+        "source_snapshots": [
+          {
+            "sha256": "f49c98216b8104b927c39692a6067bd7dd0309e0533f6d90471b24f7a855692a",
+            "size_bytes": 17957
+          },
+          {
+            "sha256": "20755917d220f1fd2733a70ef4e057bc8c106da1c8457ca13887163b314e88a0",
+            "size_bytes": 1507
+          }
+        ],
+        "schema_equal": true,
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "candidate_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "ordered_equal": null,
+        "note": "Schema and multiset equality are recorded results; full output values are not included and were not re-compared during this extraction."
+      },
+      "comparison_scope": "incremental_lowering_gain"
+    },
+    {
+      "id": "real-kenlm-200k-BG",
+      "mode": "real-kenlm",
+      "dataset": "200k",
+      "optimization": "U01 + U03",
+      "comparison_scope": "incremental_lowering_gain",
+      "baseline_arm": "B",
+      "candidate_arm": "G",
+      "execution_order": [
+        "B11",
+        "G1",
+        "G2",
+        "B12"
+      ],
+      "samples": [
+        {
+          "round": "B11",
+          "arm": "B",
+          "run_id": "ce74e4cc-4dae-499d-8541-0df5c92bc311",
+          "timestamp_utc": "2026-08-27T10:07:13.583471+00:00",
+          "elapsed_s": 600.4305868600495,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "1e95345b64eb59cf23604c6cacd4e258f104990d30e972627c40117b683b8673",
+            "size_bytes": 16510
+          }
+        },
+        {
+          "round": "G1",
+          "arm": "G",
+          "run_id": "6894918a-0524-40a9-8c06-029ce2c6ff9d",
+          "timestamp_utc": "2026-08-27T10:17:19.517395+00:00",
+          "elapsed_s": 529.7270959005691,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "775283d8ec9ff20f9d42c2ec7983b083322fb38a6b1c439c5428ebd94594c414",
+            "size_bytes": 16527
+          }
+        },
+        {
+          "round": "G2",
+          "arm": "G",
+          "run_id": "40358850-a89d-4fd6-a4a6-6d7c9dac8641",
+          "timestamp_utc": "2026-08-27T10:26:14.744461+00:00",
+          "elapsed_s": 523.1341366702691,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "92dfa7554f61095670dc70ff3bd426b5454ea83ec73df88c0f0fa82caf207817",
+            "size_bytes": 16530
+          }
+        },
+        {
+          "round": "B12",
+          "arm": "B",
+          "run_id": "a05c86a9-8903-48ce-9458-2df11f913219",
+          "timestamp_utc": "2026-08-27T10:35:03.370395+00:00",
+          "elapsed_s": 594.6811690698378,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "a9c58624e7694f45c42397052c232e636c350bd3c635cab80c8eabe1c0cd5bef",
+            "size_bytes": 16514
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 597.5558779649436,
+        "candidate_mean_s": 526.4306162854191,
+        "speedup": 1.1351085204378806,
+        "elapsed_reduction_percent": 11.902696350632702,
+        "paired_speedups": [
+          1.1334715394146113,
+          1.1367661320191473
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "recorded_result_not_independently_rechecked_from_output",
+        "source_snapshots": [
+          {
+            "sha256": "f49c98216b8104b927c39692a6067bd7dd0309e0533f6d90471b24f7a855692a",
+            "size_bytes": 17957
+          },
+          {
+            "sha256": "b69197963548f84afcb1af0ab697dcac8f79bf74ef21a8ba9f0e9164a3b6c512",
+            "size_bytes": 894
+          }
+        ],
+        "schema_equal": true,
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "candidate_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "ordered_equal": null,
+        "note": "Schema and multiset equality are recorded results; full output values are not included and were not re-compared during this extraction."
+      }
+    },
+    {
+      "id": "real-kenlm-200k-BF",
+      "mode": "real-kenlm",
+      "dataset": "200k",
+      "optimization": "U01 + M01 + U03",
+      "baseline_arm": "B",
+      "candidate_arm": "F",
+      "execution_order": [
+        "B9",
+        "F1",
+        "F2",
+        "B10"
+      ],
+      "samples": [
+        {
+          "round": "B9",
+          "arm": "B",
+          "run_id": "d93a57b9-368c-4a7d-a1a0-626f661df45f",
+          "timestamp_utc": "2026-08-26T20:54:37.764797+00:00",
+          "elapsed_s": 607.3949607601389,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "7dfbd18877f5c561174706309dcc188dbeb095404626d23c1cdff37583d19d6b",
+            "size_bytes": 16515
+          }
+        },
+        {
+          "round": "F1",
+          "arm": "F",
+          "run_id": "9af0744c-8abb-403b-911e-621b13961fd5",
+          "timestamp_utc": "2026-08-26T21:04:50.568831+00:00",
+          "elapsed_s": 433.1637414493598,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "6e95b2da143e1267db7343c88fc4fd24bee9562b2e02ec356401b7de56f35f3e",
+            "size_bytes": 16518
+          }
+        },
+        {
+          "round": "F2",
+          "arm": "F",
+          "run_id": "3af23946-a858-45f2-9188-49aab1ea2aeb",
+          "timestamp_utc": "2026-08-26T21:12:09.128874+00:00",
+          "elapsed_s": 436.9853220600635,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "7d13291e8c3320cd627d01465c406a38e208dd6d79dda5f94b5f4323f2f16a91",
+            "size_bytes": 16511
+          }
+        },
+        {
+          "round": "B10",
+          "arm": "B",
+          "run_id": "278c9b70-b63f-4e24-9ba9-64c09c0a6249",
+          "timestamp_utc": "2026-08-26T21:19:31.517783+00:00",
+          "elapsed_s": 601.0613739704713,
+          "status": "ok",
+          "input_rows": 200000,
+          "output_rows": 199765,
+          "source_snapshot": {
+            "sha256": "b236ddb96407ebec398ea9f3225408ba3a14d9fe69457a6920d9a1e045760682",
+            "size_bytes": 16512
+          }
+        }
+      ],
+      "statistics": {
+        "baseline_mean_s": 604.2281673653051,
+        "candidate_mean_s": 435.07453175471164,
+        "speedup": 1.388792317786047,
+        "elapsed_reduction_percent": 27.994993405914215,
+        "paired_speedups": [
+          1.4022294634537136,
+          1.3754726843842495
+        ],
+        "samples_per_arm": 2,
+        "confidence_interval": null,
+        "both_pairs_improve": true,
+        "speedup_exceeds_1_02": true
+      },
+      "correctness": {
+        "evidence_level": "recorded_result_not_independently_rechecked_from_output",
+        "source_snapshots": [
+          {
+            "sha256": "f49c98216b8104b927c39692a6067bd7dd0309e0533f6d90471b24f7a855692a",
+            "size_bytes": 17957
+          },
+          {
+            "sha256": "20755917d220f1fd2733a70ef4e057bc8c106da1c8457ca13887163b314e88a0",
+            "size_bytes": 1507
+          }
+        ],
+        "schema_equal": true,
+        "multiset_equal": true,
+        "baseline_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "candidate_multiset_sha256": "1dd718bda246de08990206f1237b67ae6fa38d71c377f67802071151891bdccd",
+        "ordered_equal": null,
+        "note": "Schema and multiset equality are recorded results; full output values are not included and were not re-compared during this extraction."
+      },
+      "comparison_scope": "incremental_lowering_gain"
+    }
+  ],
+  "correctness": {
+    "ordering_contract": "Unordered output multiset; distributed sink physical order is not a correctness gate.",
+    "runner_row_counts_checked_for_all_samples": true,
+    "stand_in_sink_comparisons": "Ten A-F sink-comparison extracts are embedded under comparisons[].correctness.embedded_sink_comparison; B/G equality remains a recorded result.",
+    "real_kenlm_sink_comparisons": "Recorded equality results; no fresh full-output comparison was performed.",
+    "output_hash_scope": "Final per-arm sink digests, not independent digests for every timing repetition."
+  },
+  "validation": {
+    "new_benchmarks_run": false,
+    "remote_l1": {
+      "tests_run": 5,
+      "status": "pass",
+      "source_snapshot": {
+        "sha256": "038e58146d4cb6c05c17bb054234b746bf03dee2919edf9dea6638c4c7860bf5",
+        "size_bytes": 103
+      }
+    },
+    "windows_l1": {
+      "tests_run": 5,
+      "status": "reported_pass",
+      "source_snapshot": {
+        "sha256": "fe7ff771a43cbd3f539c18d36232b1b2d08f0e7397bf25ef76e49bd75d2a6545",
+        "size_bytes": 12253
+      },
+      "evidence_level": "recorded_result_only"
+    },
+    "diagnostics": {
+      "mode": "stand-in",
+      "dataset": "20k",
+      "arm": "F",
+      "separate_from_timing": true,
+      "counters": {
+        "native_expression_fallback_rebuilds": 0,
+        "native_expression_guard_checks": 7,
+        "native_expression_guard_misses": 0,
+        "native_expression_language_id_plans": 1,
+        "native_expression_length_plans": 1,
+        "native_expression_null_guard_batches": 28,
+        "native_expression_null_guard_misses": 0,
+        "native_expression_null_guard_rows": 139982,
+        "native_expression_regex_plans": 3,
+        "native_expression_translation_plans": 1,
+        "native_expression_whitespace_plans": 1
+      },
+      "source_snapshots": [
+        {
+          "sha256": "aaef82c38b48b5f4234fe0edff2b07cd5e13793aef105a92f286eaa1e53dabb4",
+          "size_bytes": 1248
+        },
+        {
+          "sha256": "a1b2eaec7a19cdb72bc9c0ba1acd45a9557739344231ca9594948165797182a0",
+          "size_bytes": 1255
+        }
+      ],
+      "epoch_mismatch": {
+        "count": 0,
+        "evidence_level": "recorded_result_only",
+        "source_snapshot": {
+          "sha256": "f49c98216b8104b927c39692a6067bd7dd0309e0533f6d90471b24f7a855692a",
+          "size_bytes": 17957
+        }
+      }
+    },
+    "extraction_checks": {
+      "runner_json_count": 88,
+      "comparison_count": 22,
+      "all_runner_status_ok": true,
+      "input_fingerprints_checked": true,
+      "runner_cluster_profiles_checked": true,
+      "existing_optimization_comparison_count": 4,
+      "incremental_lowering_comparison_count": 18,
+      "derived_overall_comparison_count": 22,
+      "statistics_recomputed_from_embedded_samples": true,
+      "artifact_sha256_algorithm": "SHA256 over original snapshot bytes",
+      "embedded_sink_comparison_count": 10,
+      "repository_file_references_checked": true
+    }
+  },
+  "limitations": [
+    "Only two measured samples per arm; no confidence interval or broad statistical stability claim.",
+    "M01 is limited to the exact guarded six-profile character-regex helper with lang=en and min_score=0.1; no fastText claim.",
+    "Links and copyright apply only to the qualified exact regex signatures and replacements.",
+    "All new flags default off and require the literal value 1.",
+    "Epoch is supplied explicitly by the environment; results do not validate a missing-epoch deployment.",
+    "Real-KenLM 200K combined speedup is positive but below the 1.70x expectation set for stand-in.",
+    "Environment and source identities are recorded measurement metadata; the measurement host was not re-audited.",
+    "This summary embeds timing samples and selected correctness results, not original runner files, models or full output data. Snapshot hashes alone cannot reconstruct those inputs.",
+    "Total A/C,D,E,F,G speedups are cross-block observations. Their source means are measured, but a new direct total-gain ABBA experiment was not performed; drift may affect these ratios."
+  ],
+  "overall_comparisons": [
+    {
+      "id": "stand-in-20k-AB-total",
+      "mode": "stand-in",
+      "dataset": "20k",
+      "baseline_arm": "A",
+      "candidate_arm": "B",
+      "baseline_source_comparison": "stand-in-20k-AB",
+      "candidate_source_comparison": "stand-in-20k-AB",
+      "baseline_mean_s": 47.49661174509674,
+      "candidate_mean_s": 39.322498735040426,
+      "total_speedup": 1.207873692491783,
+      "total_elapsed_reduction_percent": 17.209886578699297,
+      "classification": "same_block_abba",
+      "independent_total_gain_abba": true,
+      "confidence_interval": null,
+      "note": "Direct same-block A/B gain."
+    },
+    {
+      "id": "stand-in-20k-AC-total",
+      "mode": "stand-in",
+      "dataset": "20k",
+      "baseline_arm": "A",
+      "candidate_arm": "C",
+      "baseline_source_comparison": "stand-in-20k-AB",
+      "candidate_source_comparison": "stand-in-20k-BC",
+      "baseline_mean_s": 47.49661174509674,
+      "candidate_mean_s": 35.433139220112935,
+      "total_speedup": 1.3404573455951714,
+      "total_elapsed_reduction_percent": 25.398595987700467,
+      "classification": "cross_block_observation",
+      "independent_total_gain_abba": false,
+      "confidence_interval": null,
+      "note": "Ratio of separately measured arm means from different blocks; descriptive total gain, not an independent A/candidate ABBA result."
+    },
+    {
+      "id": "stand-in-20k-AD-total",
+      "mode": "stand-in",
+      "dataset": "20k",
+      "baseline_arm": "A",
+      "candidate_arm": "D",
+      "baseline_source_comparison": "stand-in-20k-AB",
+      "candidate_source_comparison": "stand-in-20k-BD",
+      "baseline_mean_s": 47.49661174509674,
+      "candidate_mean_s": 33.893439260078594,
+      "total_speedup": 1.401351198992681,
+      "total_elapsed_reduction_percent": 28.64030082403185,
+      "classification": "cross_block_observation",
+      "independent_total_gain_abba": false,
+      "confidence_interval": null,
+      "note": "Ratio of separately measured arm means from different blocks; descriptive total gain, not an independent A/candidate ABBA result."
+    },
+    {
+      "id": "stand-in-20k-AE-total",
+      "mode": "stand-in",
+      "dataset": "20k",
+      "baseline_arm": "A",
+      "candidate_arm": "E",
+      "baseline_source_comparison": "stand-in-20k-AB",
+      "candidate_source_comparison": "stand-in-20k-BE",
+      "baseline_mean_s": 47.49661174509674,
+      "candidate_mean_s": 34.97410583496094,
+      "total_speedup": 1.358050781032921,
+      "total_elapsed_reduction_percent": 26.365051000566485,
+      "classification": "cross_block_observation",
+      "independent_total_gain_abba": false,
+      "confidence_interval": null,
+      "note": "Ratio of separately measured arm means from different blocks; descriptive total gain, not an independent A/candidate ABBA result."
+    },
+    {
+      "id": "stand-in-20k-AF-total",
+      "mode": "stand-in",
+      "dataset": "20k",
+      "baseline_arm": "A",
+      "candidate_arm": "F",
+      "baseline_source_comparison": "stand-in-20k-AB",
+      "candidate_source_comparison": "stand-in-20k-BF",
+      "baseline_mean_s": 47.49661174509674,
+      "candidate_mean_s": 26.71118892962113,
+      "total_speedup": 1.7781541611734777,
+      "total_elapsed_reduction_percent": 43.76190648509022,
+      "classification": "cross_block_observation",
+      "independent_total_gain_abba": false,
+      "confidence_interval": null,
+      "note": "Ratio of separately measured arm means from different blocks; descriptive total gain, not an independent A/candidate ABBA result."
+    },
+    {
+      "id": "stand-in-200k-AB-total",
+      "mode": "stand-in",
+      "dataset": "200k",
+      "baseline_arm": "A",
+      "candidate_arm": "B",
+      "baseline_source_comparison": "stand-in-200k-AB",
+      "candidate_source_comparison": "stand-in-200k-AB",
+      "baseline_mean_s": 398.45676428009756,
+      "candidate_mean_s": 295.3861999500077,
+      "total_speedup": 1.3489349344943464,
+      "total_elapsed_reduction_percent": 25.867439975905583,
+      "classification": "same_block_abba",
+      "independent_total_gain_abba": true,
+      "confidence_interval": null,
+      "note": "Direct same-block A/B gain."
+    },
+    {
+      "id": "stand-in-200k-AC-total",
+      "mode": "stand-in",
+      "dataset": "200k",
+      "baseline_arm": "A",
+      "candidate_arm": "C",
+      "baseline_source_comparison": "stand-in-200k-AB",
+      "candidate_source_comparison": "stand-in-200k-BC",
+      "baseline_mean_s": 398.45676428009756,
+      "candidate_mean_s": 244.7991750750225,
+      "total_speedup": 1.6276883455917868,
+      "total_elapsed_reduction_percent": 38.563177483683155,
+      "classification": "cross_block_observation",
+      "independent_total_gain_abba": false,
+      "confidence_interval": null,
+      "note": "Ratio of separately measured arm means from different blocks; descriptive total gain, not an independent A/candidate ABBA result."
+    },
+    {
+      "id": "stand-in-200k-AD-total",
+      "mode": "stand-in",
+      "dataset": "200k",
+      "baseline_arm": "A",
+      "candidate_arm": "D",
+      "baseline_source_comparison": "stand-in-200k-AB",
+      "candidate_source_comparison": "stand-in-200k-BD",
+      "baseline_mean_s": 398.45676428009756,
+      "candidate_mean_s": 232.87094800523482,
+      "total_speedup": 1.7110625764753638,
+      "total_elapsed_reduction_percent": 41.556783851826694,
+      "classification": "cross_block_observation",
+      "independent_total_gain_abba": false,
+      "confidence_interval": null,
+      "note": "Ratio of separately measured arm means from different blocks; descriptive total gain, not an independent A/candidate ABBA result."
+    },
+    {
+      "id": "stand-in-200k-AE-total",
+      "mode": "stand-in",
+      "dataset": "200k",
+      "baseline_arm": "A",
+      "candidate_arm": "E",
+      "baseline_source_comparison": "stand-in-200k-AB",
+      "candidate_source_comparison": "stand-in-200k-BE",
+      "baseline_mean_s": 398.45676428009756,
+      "candidate_mean_s": 237.59593456494622,
+      "total_speedup": 1.6770352784432028,
+      "total_elapsed_reduction_percent": 40.37096220609603,
+      "classification": "cross_block_observation",
+      "independent_total_gain_abba": false,
+      "confidence_interval": null,
+      "note": "Ratio of separately measured arm means from different blocks; descriptive total gain, not an independent A/candidate ABBA result."
+    },
+    {
+      "id": "stand-in-200k-AG-total",
+      "mode": "stand-in",
+      "dataset": "200k",
+      "baseline_arm": "A",
+      "candidate_arm": "G",
+      "baseline_source_comparison": "stand-in-200k-AB",
+      "candidate_source_comparison": "stand-in-200k-BG",
+      "baseline_mean_s": 398.45676428009756,
+      "candidate_mean_s": 209.16692670993507,
+      "total_speedup": 1.9049702099063808,
+      "total_elapsed_reduction_percent": 47.505740782731465,
+      "classification": "cross_block_observation",
+      "independent_total_gain_abba": false,
+      "confidence_interval": null,
+      "note": "Ratio of separately measured arm means from different blocks; descriptive total gain, not an independent A/candidate ABBA result."
+    },
+    {
+      "id": "stand-in-200k-AF-total",
+      "mode": "stand-in",
+      "dataset": "200k",
+      "baseline_arm": "A",
+      "candidate_arm": "F",
+      "baseline_source_comparison": "stand-in-200k-AB",
+      "candidate_source_comparison": "stand-in-200k-BF",
+      "baseline_mean_s": 398.45676428009756,
+      "candidate_mean_s": 157.00801935023628,
+      "total_speedup": 2.537811545735533,
+      "total_elapsed_reduction_percent": 60.59597089940063,
+      "classification": "cross_block_observation",
+      "independent_total_gain_abba": false,
+      "confidence_interval": null,
+      "note": "Ratio of separately measured arm means from different blocks; descriptive total gain, not an independent A/candidate ABBA result."
+    },
+    {
+      "id": "real-kenlm-20k-AB-total",
+      "mode": "real-kenlm",
+      "dataset": "20k",
+      "baseline_arm": "A",
+      "candidate_arm": "B",
+      "baseline_source_comparison": "real-kenlm-20k-AB",
+      "candidate_source_comparison": "real-kenlm-20k-AB",
+      "baseline_mean_s": 79.023379790131,
+      "candidate_mean_s": 70.4714182598982,
+      "total_speedup": 1.1213536174154068,
+      "total_elapsed_reduction_percent": 10.822065005249026,
+      "classification": "same_block_abba",
+      "independent_total_gain_abba": true,
+      "confidence_interval": null,
+      "note": "Direct same-block A/B gain."
+    },
+    {
+      "id": "real-kenlm-20k-AC-total",
+      "mode": "real-kenlm",
+      "dataset": "20k",
+      "baseline_arm": "A",
+      "candidate_arm": "C",
+      "baseline_source_comparison": "real-kenlm-20k-AB",
+      "candidate_source_comparison": "real-kenlm-20k-BC",
+      "baseline_mean_s": 79.023379790131,
+      "candidate_mean_s": 67.23833297519013,
+      "total_speedup": 1.1752727394251337,
+      "total_elapsed_reduction_percent": 14.913367216435702,
+      "classification": "cross_block_observation",
+      "independent_total_gain_abba": false,
+      "confidence_interval": null,
+      "note": "Ratio of separately measured arm means from different blocks; descriptive total gain, not an independent A/candidate ABBA result."
+    },
+    {
+      "id": "real-kenlm-20k-AD-total",
+      "mode": "real-kenlm",
+      "dataset": "20k",
+      "baseline_arm": "A",
+      "candidate_arm": "D",
+      "baseline_source_comparison": "real-kenlm-20k-AB",
+      "candidate_source_comparison": "real-kenlm-20k-BD",
+      "baseline_mean_s": 79.023379790131,
+      "candidate_mean_s": 65.79310347000137,
+      "total_speedup": 1.2010891054282313,
+      "total_elapsed_reduction_percent": 16.742230407338166,
+      "classification": "cross_block_observation",
+      "independent_total_gain_abba": false,
+      "confidence_interval": null,
+      "note": "Ratio of separately measured arm means from different blocks; descriptive total gain, not an independent A/candidate ABBA result."
+    },
+    {
+      "id": "real-kenlm-20k-AE-total",
+      "mode": "real-kenlm",
+      "dataset": "20k",
+      "baseline_arm": "A",
+      "candidate_arm": "E",
+      "baseline_source_comparison": "real-kenlm-20k-AB",
+      "candidate_source_comparison": "real-kenlm-20k-BE",
+      "baseline_mean_s": 79.023379790131,
+      "candidate_mean_s": 67.07916164491326,
+      "total_speedup": 1.1780615298748818,
+      "total_elapsed_reduction_percent": 15.114790302488966,
+      "classification": "cross_block_observation",
+      "independent_total_gain_abba": false,
+      "confidence_interval": null,
+      "note": "Ratio of separately measured arm means from different blocks; descriptive total gain, not an independent A/candidate ABBA result."
+    },
+    {
+      "id": "real-kenlm-20k-AF-total",
+      "mode": "real-kenlm",
+      "dataset": "20k",
+      "baseline_arm": "A",
+      "candidate_arm": "F",
+      "baseline_source_comparison": "real-kenlm-20k-AB",
+      "candidate_source_comparison": "real-kenlm-20k-BF",
+      "baseline_mean_s": 79.023379790131,
+      "candidate_mean_s": 58.47069228999317,
+      "total_speedup": 1.3515040902578004,
+      "total_elapsed_reduction_percent": 26.008363037269888,
+      "classification": "cross_block_observation",
+      "independent_total_gain_abba": false,
+      "confidence_interval": null,
+      "note": "Ratio of separately measured arm means from different blocks; descriptive total gain, not an independent A/candidate ABBA result."
+    },
+    {
+      "id": "real-kenlm-200k-AB-total",
+      "mode": "real-kenlm",
+      "dataset": "200k",
+      "baseline_arm": "A",
+      "candidate_arm": "B",
+      "baseline_source_comparison": "real-kenlm-200k-AB",
+      "candidate_source_comparison": "real-kenlm-200k-AB",
+      "baseline_mean_s": 706.4516980852932,
+      "candidate_mean_s": 600.0123687598389,
+      "total_speedup": 1.177395225277527,
+      "total_elapsed_reduction_percent": 15.066752562693031,
+      "classification": "same_block_abba",
+      "independent_total_gain_abba": true,
+      "confidence_interval": null,
+      "note": "Direct same-block A/B gain."
+    },
+    {
+      "id": "real-kenlm-200k-AC-total",
+      "mode": "real-kenlm",
+      "dataset": "200k",
+      "baseline_arm": "A",
+      "candidate_arm": "C",
+      "baseline_source_comparison": "real-kenlm-200k-AB",
+      "candidate_source_comparison": "real-kenlm-200k-BC",
+      "baseline_mean_s": 706.4516980852932,
+      "candidate_mean_s": 565.0573062999174,
+      "total_speedup": 1.2502301805656635,
+      "total_elapsed_reduction_percent": 20.014728843967553,
+      "classification": "cross_block_observation",
+      "independent_total_gain_abba": false,
+      "confidence_interval": null,
+      "note": "Ratio of separately measured arm means from different blocks; descriptive total gain, not an independent A/candidate ABBA result."
+    },
+    {
+      "id": "real-kenlm-200k-AD-total",
+      "mode": "real-kenlm",
+      "dataset": "200k",
+      "baseline_arm": "A",
+      "candidate_arm": "D",
+      "baseline_source_comparison": "real-kenlm-200k-AB",
+      "candidate_source_comparison": "real-kenlm-200k-BD",
+      "baseline_mean_s": 706.4516980852932,
+      "candidate_mean_s": 497.42863059509546,
+      "total_speedup": 1.4202071506019553,
+      "total_elapsed_reduction_percent": 29.587736579403256,
+      "classification": "cross_block_observation",
+      "independent_total_gain_abba": false,
+      "confidence_interval": null,
+      "note": "Ratio of separately measured arm means from different blocks; descriptive total gain, not an independent A/candidate ABBA result."
+    },
+    {
+      "id": "real-kenlm-200k-AE-total",
+      "mode": "real-kenlm",
+      "dataset": "200k",
+      "baseline_arm": "A",
+      "candidate_arm": "E",
+      "baseline_source_comparison": "real-kenlm-200k-AB",
+      "candidate_source_comparison": "real-kenlm-200k-BE",
+      "baseline_mean_s": 706.4516980852932,
+      "candidate_mean_s": 555.7785077695735,
+      "total_speedup": 1.2711029451649631,
+      "total_elapsed_reduction_percent": 21.328165920485652,
+      "classification": "cross_block_observation",
+      "independent_total_gain_abba": false,
+      "confidence_interval": null,
+      "note": "Ratio of separately measured arm means from different blocks; descriptive total gain, not an independent A/candidate ABBA result."
+    },
+    {
+      "id": "real-kenlm-200k-AG-total",
+      "mode": "real-kenlm",
+      "dataset": "200k",
+      "baseline_arm": "A",
+      "candidate_arm": "G",
+      "baseline_source_comparison": "real-kenlm-200k-AB",
+      "candidate_source_comparison": "real-kenlm-200k-BG",
+      "baseline_mean_s": 706.4516980852932,
+      "candidate_mean_s": 526.4306162854191,
+      "total_speedup": 1.3419654484956296,
+      "total_elapsed_reduction_percent": 25.482433163907448,
+      "classification": "cross_block_observation",
+      "independent_total_gain_abba": false,
+      "confidence_interval": null,
+      "note": "Ratio of separately measured arm means from different blocks; descriptive total gain, not an independent A/candidate ABBA result."
+    },
+    {
+      "id": "real-kenlm-200k-AF-total",
+      "mode": "real-kenlm",
+      "dataset": "200k",
+      "baseline_arm": "A",
+      "candidate_arm": "F",
+      "baseline_source_comparison": "real-kenlm-200k-AB",
+      "candidate_source_comparison": "real-kenlm-200k-BF",
+      "baseline_mean_s": 706.4516980852932,
+      "candidate_mean_s": 435.07453175471164,
+      "total_speedup": 1.6237486833257797,
+      "total_elapsed_reduction_percent": 38.41411480305011,
+      "classification": "cross_block_observation",
+      "independent_total_gain_abba": false,
+      "confidence_interval": null,
+      "note": "Ratio of separately measured arm means from different blocks; descriptive total gain, not an independent A/candidate ABBA result."
+    }
+  ],
+  "repository_files": {
+    "path_base": "repository_root",
+    "validation_report": "docs/reports/2026-08-27-fineweb-three-lowerings-validation.md",
+    "evidence": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+    "implementation": [
+      "src/python_udf_jit/compiler/vector_predicate.py",
+      "src/python_udf_jit/integration/daft_ray/control.py",
+      "src/python_udf_jit/integration/daft_ray/columnar.py"
+    ],
+    "tests": [
+      "tests/unit/integration/daft_ray/test_control_hook.py"
+    ]
+  },
+  "provenance": {
+    "format": "Embedded measurement summary with source snapshot identities",
+    "file_reference_policy": "Only repository_files contains file references; all paths are relative to this repository root.",
+    "source_snapshot_semantics": "sha256 and size_bytes identify original bytes inspected during extraction. They are metadata, not file references or instructions to locate an external document.",
+    "reproducible_from_this_file": [
+      "22 ABBA statistics from 88 embedded timing samples",
+      "22 overall gain ratios from named comparison records",
+      "10 embedded sink comparisons of row count, schema and multiset digests"
+    ],
+    "not_reproducible_from_this_file": [
+      "Re-execution of the original workload without its datasets and runtime",
+      "Re-hashing the original runner files from their snapshot hashes alone",
+      "Re-comparing full Lance output values",
+      "Independent proof of the recorded Windows test or reported output-equality results"
+    ],
+    "no_new_benchmark_runs": true
+  }
+}
