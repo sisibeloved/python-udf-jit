@@ -201,6 +201,37 @@ def _columnar_scalar_call_eligible(
         return False
 
 
+_FINEWEB_LINKS_PATTERN = r"https?://\S+|www\.\S+"
+_FINEWEB_COPYRIGHT_PATTERN = (
+    r"(?i)(copyright\s*\(?c\)?|©|\(c\)|all rights reserved)[^\n.]*\.?"
+)
+
+
+def _fineweb_experimental_plan_enabled(plan: Any) -> bool:
+    """Fail closed for the three independently validated FineWeb lowerings."""
+
+    kind = getattr(plan, "kind", "")
+    if kind == "language_id":
+        return os.environ.get(
+            "UDFJIT_FINEWEB_LANGUAGE_ID_LOWERING",
+            "0",
+        ) == "1"
+    if kind != "regex":
+        return True
+    pattern = getattr(plan, "pattern", "")
+    if pattern == _FINEWEB_LINKS_PATTERN:
+        return os.environ.get(
+            "UDFJIT_FINEWEB_LINKS_LOWERING",
+            "0",
+        ) == "1"
+    if pattern == _FINEWEB_COPYRIGHT_PATTERN:
+        return os.environ.get(
+            "UDFJIT_FINEWEB_COPYRIGHT_LOWERING",
+            "0",
+        ) == "1"
+    return True
+
+
 def _native_expression_lowering(
     daft_module: Any,
     original_func_call: Any,
@@ -224,6 +255,8 @@ def _native_expression_lowering(
         ):
             return _NO_NATIVE_EXPRESSION
         from python_udf_jit.compiler.vector_predicate import (
+            VectorPredicateCaptureError,
+            capture_language_id_score_predicate,
             capture_string_length_predicate,
             capture_string_transform,
         )
@@ -239,11 +272,19 @@ def _native_expression_lowering(
         if output_type == "string":
             plan = capture_string_transform(resolved.function)
         elif output_type == "bool":
-            plan = capture_string_length_predicate(
-                resolved.function,
-                bound_arguments=resolved.bound_arguments,
-            )
+            try:
+                plan = capture_string_length_predicate(
+                    resolved.function,
+                    bound_arguments=resolved.bound_arguments,
+                )
+            except VectorPredicateCaptureError:
+                plan = capture_language_id_score_predicate(
+                    resolved.function,
+                    bound_arguments=resolved.bound_arguments,
+                )
         else:
+            return _NO_NATIVE_EXPRESSION
+        if not _fineweb_experimental_plan_enabled(plan):
             return _NO_NATIVE_EXPRESSION
 
         # Constructing a Daft batch UDF is observable framework work even when
@@ -280,7 +321,7 @@ def _native_expression_lowering(
                 )
             if plan.kind == "regex":
                 result = expression.regexp_replace(
-                    plan.pattern,
+                    plan.arrow_pattern,
                     plan.replacement,
                 )
                 return _NativeExpressionProof(
@@ -290,6 +331,28 @@ def _native_expression_lowering(
                     "regex",
                 )
         elif output_type == "bool":
+            if getattr(plan, "kind", "length") == "language_id":
+                patterns = dict(plan.arrow_patterns)
+                counts = {
+                    name: expression.regexp_count(pattern)
+                    for name, pattern in patterns.items()
+                }
+                english = counts["en"]
+                best_is_english = (
+                    (english >= counts["zh"])
+                    & (english >= counts["ja"])
+                    & (english >= counts["ko"])
+                    & (english >= counts["ar"])
+                    & (english >= counts["ru"])
+                )
+                nonblank = expression.regexp_count(r"\S") > 0
+                threshold = (english * 10) >= expression.length()
+                return _NativeExpressionProof(
+                    nonblank & best_is_english & threshold,
+                    resolved.wrapper_guard,
+                    plan,
+                    "language_id",
+                )
             length = expression.length()
             lower = (
                 length >= plan.lower

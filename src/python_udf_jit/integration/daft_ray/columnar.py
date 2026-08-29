@@ -78,6 +78,7 @@ class ColumnarRuntimeCounters:
     native_expression_translation_plans: int = 0
     native_expression_whitespace_plans: int = 0
     native_expression_regex_plans: int = 0
+    native_expression_language_id_plans: int = 0
     native_expression_length_plans: int = 0
     native_expression_guard_checks: int = 0
     native_expression_guard_misses: int = 0
@@ -170,6 +171,7 @@ def record_native_expression_lowering(kind: str) -> None:
         "native_expression_translation_plans",
         "native_expression_whitespace_plans",
         "native_expression_regex_plans",
+        "native_expression_language_id_plans",
         "native_expression_length_plans",
     }:
         raise ValueError("native_expression_kind_unsupported")

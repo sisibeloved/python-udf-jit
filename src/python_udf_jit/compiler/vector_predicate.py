@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import builtins
 import functools
+import hashlib
 import inspect
 import re
 import textwrap
@@ -49,6 +50,26 @@ class StringLengthPredicatePlan:
             )
         except (TypeError, ValueError):
             return False
+
+
+@dataclass(frozen=True)
+class LanguageIdScorePlan:
+    """Exact six-profile language score specialized for target ``en``/0.1."""
+
+    function: types.FunctionType
+    code: types.CodeType
+    profiles_dict: dict[str, object]
+    regex_items: tuple[tuple[str, object], ...]
+    arrow_patterns: tuple[tuple[str, str], ...]
+
+    kind = "language_id"
+
+    def matches(self) -> bool:
+        if self.function.__code__ is not self.code:
+            return False
+        if self.function.__globals__.get("_LANG_CHAR_RE", _ABSENT) is not self.profiles_dict:
+            return False
+        return all(self.profiles_dict.get(name, _ABSENT) is regex for name, regex in self.regex_items)
 
 
 @dataclass(frozen=True)
@@ -105,6 +126,7 @@ class RegexSubstitutionPlan:
     regex_name: str
     regex_object: object
     pattern: str
+    arrow_pattern: str
     replacement: str
 
     kind = "regex"
@@ -119,6 +141,29 @@ class RegexSubstitutionPlan:
 
 _ABSENT = object()
 _RE_PATTERN_TYPE = type(re.compile(""))
+_KNOWN_CROSS_ENGINE_REGEX_SUBSTITUTIONS = {
+    (
+        r"https?://\S+|www\.\S+",
+        re.IGNORECASE | re.UNICODE,
+        "",
+    ): r"(?i)https?://\S+|www\.\S+",
+    (
+        r"(?i)(copyright\s*\(?c\)?|©|\(c\)|all rights reserved)[^\n.]*\.?",
+        re.IGNORECASE | re.UNICODE,
+        "",
+    ): r"(?i)(copyright\s*\(?c\)?|©|\(c\)|all rights reserved)[^\n.]*\.?",
+}
+_LANGUAGE_ID_HELPER_AST_SHA256 = (
+    "1288702ffba59fab1c1f59680eb3706ffc23a5b60401991725d03f4587595a36"
+)
+_LANGUAGE_REGEX_PATTERNS = (
+    ("en", r"[a-zA-Z]", r"[a-zA-Z]"),
+    ("zh", r"[\u4e00-\u9fff]", r"[\x{4E00}-\x{9FFF}]"),
+    ("ja", r"[\u3040-\u309f\u30a0-\u30ff]", r"[\x{3040}-\x{309F}\x{30A0}-\x{30FF}]"),
+    ("ko", r"[\uac00-\ud7af]", r"[\x{AC00}-\x{D7AF}]"),
+    ("ar", r"[\u0600-\u06ff]", r"[\x{0600}-\x{06FF}]"),
+    ("ru", r"[\u0400-\u04ff]", r"[\x{0400}-\x{04FF}]"),
+)
 
 
 def _function_node(
@@ -145,6 +190,49 @@ def _function_node(
     if len(nodes) != 1:
         raise VectorPredicateCaptureError("function_source_shape_unsupported")
     return nodes[0], first_line
+
+
+def _function_ast_sha256(function: types.FunctionType) -> str:
+    node, _first_line = _function_node(function)
+    document = ast.dump(node, include_attributes=False)
+    return hashlib.sha256(document.encode("utf-8")).hexdigest()
+
+
+def capture_language_id_score_predicate(
+    function: types.FunctionType,
+    *,
+    bound_arguments: Mapping[str, object],
+) -> LanguageIdScorePlan:
+    if type(function) is not types.FunctionType:
+        raise VectorPredicateCaptureError("function_required")
+    if set(bound_arguments) != {"lang", "min_score"}:
+        raise VectorPredicateCaptureError("language_bound_arguments_unsupported")
+    if bound_arguments["lang"] != "en" or bound_arguments["min_score"] != 0.1:
+        raise VectorPredicateCaptureError("language_bound_arguments_unsupported")
+    if _function_ast_sha256(function) != _LANGUAGE_ID_HELPER_AST_SHA256:
+        raise VectorPredicateCaptureError("language_helper_shape_unsupported")
+    profiles = function.__globals__.get("_LANG_CHAR_RE", _ABSENT)
+    if type(profiles) is not dict or tuple(profiles) != tuple(
+        name for name, _python, _arrow in _LANGUAGE_REGEX_PATTERNS
+    ):
+        raise VectorPredicateCaptureError("language_profiles_unsupported")
+    regex_items: list[tuple[str, object]] = []
+    for name, python_pattern, _arrow_pattern in _LANGUAGE_REGEX_PATTERNS:
+        regex = profiles.get(name, _ABSENT)
+        if (
+            type(regex) is not _RE_PATTERN_TYPE
+            or regex.pattern != python_pattern
+            or regex.flags != re.UNICODE
+        ):
+            raise VectorPredicateCaptureError("language_profile_regex_unsupported")
+        regex_items.append((name, regex))
+    return LanguageIdScorePlan(
+        function=function,
+        code=function.__code__,
+        profiles_dict=profiles,
+        regex_items=tuple(regex_items),
+        arrow_patterns=tuple((name, arrow) for name, _python, arrow in _LANGUAGE_REGEX_PATTERNS),
+    )
 
 
 def _constant_bindings(
@@ -462,6 +550,23 @@ def _cross_engine_regex_safe(pattern: str) -> bool:
     return not escaped and not in_class
 
 
+def _known_cross_engine_regex_substitution(
+    regex_object: object,
+    replacement: str,
+) -> str | None:
+    """Accept only patterns qualified against frozen real and negative data."""
+
+    if type(regex_object) is not _RE_PATTERN_TYPE:
+        return None
+    return _KNOWN_CROSS_ENGINE_REGEX_SUBSTITUTIONS.get(
+        (
+            regex_object.pattern,
+            regex_object.flags,
+            replacement,
+        )
+    )
+
+
 def capture_regex_substitution(
     function: types.FunctionType,
 ) -> RegexSubstitutionPlan:
@@ -492,12 +597,20 @@ def capture_regex_substitution(
     regex_name = call.func.value.id
     globals_dict = function.__globals__
     regex_object = globals_dict.get(regex_name, _ABSENT)
-    if (
-        type(regex_object) is not _RE_PATTERN_TYPE
-        or regex_object.flags != re.UNICODE
-        or type(regex_object.pattern) is not str
-        or not _cross_engine_regex_safe(regex_object.pattern)
+    if type(regex_object) is not _RE_PATTERN_TYPE or type(
+        regex_object.pattern
+    ) is not str:
+        raise VectorPredicateCaptureError("regex_cross_engine_proof_failed")
+    if regex_object.flags == re.UNICODE and _cross_engine_regex_safe(
+        regex_object.pattern
     ):
+        arrow_pattern = regex_object.pattern
+    else:
+        arrow_pattern = _known_cross_engine_regex_substitution(
+            regex_object,
+            call.args[0].value,
+        )
+    if arrow_pattern is None:
         raise VectorPredicateCaptureError("regex_cross_engine_proof_failed")
     return RegexSubstitutionPlan(
         function=function,
@@ -506,6 +619,7 @@ def capture_regex_substitution(
         regex_name=regex_name,
         regex_object=regex_object,
         pattern=regex_object.pattern,
+        arrow_pattern=arrow_pattern,
         replacement=call.args[0].value,
     )
 
