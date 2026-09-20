@@ -216,6 +216,11 @@ def _fineweb_experimental_plan_enabled(plan: Any) -> bool:
             "UDFJIT_FINEWEB_LANGUAGE_ID_LOWERING",
             "0",
         ) == "1"
+    if kind == "join_translate":
+        return os.environ.get(
+            "UDFJIT_JOIN_TRANSLATE_LOWERING",
+            "0",
+        ) == "1"
     if kind != "regex":
         return True
     pattern = getattr(plan, "pattern", "")
@@ -318,6 +323,25 @@ def _native_expression_lowering(
                     resolved.wrapper_guard,
                     plan,
                     "whitespace",
+                )
+            if plan.kind == "join_translate":
+                # Strip precedes the replacement: set members that are not
+                # whitespace (e.g. zero-width characters) must survive at
+                # text boundaries, matching the captured Python semantics.
+                scoped = (
+                    expression.lstrip().rstrip()
+                    if plan.strip_input
+                    else expression
+                )
+                result = scoped.regexp_replace(
+                    plan.arrow_pattern,
+                    " ",
+                )
+                return _NativeExpressionProof(
+                    result,
+                    resolved.wrapper_guard,
+                    plan,
+                    "join_translate",
                 )
             if plan.kind == "regex":
                 result = expression.regexp_replace(
