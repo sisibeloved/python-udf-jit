@@ -26,8 +26,13 @@
       "path": "0005-udf-cache-descriptor-nullcheck.patch",
       "sha256": "af456b4299d068a09145ac052b3cceca56153bf35cd1848e888d59809823ba96",
       "changed_file_count": 1
+    },
+    {
+      "path": "0006-udf-transient-closure-compile-reuse.patch",
+      "sha256": "5ae52fd79eb4de859e290835972bedd46e81d82fe080a96edc2e0c2f2392b586",
+      "changed_file_count": 3
     }
   ],
-  "patch_series_sha256": "a9a99227feba0f1f4fb4f5d0abd3b0a4729b210bd346c649315913f2ebfbe578",
+  "patch_series_sha256": "cb8f82ffca7b98f58f4fa35ab4311f45bd80e30eee87aa946b9969db0d7e46c6",
   "changed_file_count": 58
 }

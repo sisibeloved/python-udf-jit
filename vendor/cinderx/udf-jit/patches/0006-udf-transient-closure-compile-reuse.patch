@@ -1,0 +1,234 @@
+diff --git a/cinderx/Jit/context.cpp b/cinderx/Jit/context.cpp
+index 4171e732..7c6ad700 100644
+--- a/cinderx/Jit/context.cpp
++++ b/cinderx/Jit/context.cpp
+@@ -12,6 +12,7 @@
+ #include "cinderx/Common/log.h"
+ #include "cinderx/Common/py-portability.h"
+ #include "cinderx/Jit/config.h"
++#include <algorithm>
+ #include "cinderx/Jit/elf/reader.h"
+ #include "cinderx/StaticPython/classloader.h"
+ #include "cinderx/module_state.h"
+@@ -141,6 +142,9 @@ Context::~Context() {
+   for (auto& code : compiled_codes_) {
+     code.second->clear(true /* context_finalizing */);
+   }
++  // Release code-anchored references while the lookup maps are still
++  // intact; the anchored functions were already cleared above.
++  anchored_compiled_funcs_.clear();
+ }
+ 
+ void Context::mlockProfilerDependencies() {
+@@ -585,11 +589,49 @@ void Context::forgetCode(BorrowedRef<PyFunctionObject> func) {
+     }
+   }
+ 
++  dropAnchoredCompiled(code, cf.get());
+   clearCachedCompiledIfMatches(code, cf.get());
+   it->second->clear();
+   compiled_codes_.erase(key);
+ }
+ 
++void Context::forgetAnchoredCompiled(BorrowedRef<PyCodeObject> code) {
++  std::vector<Ref<CompiledFunction>> dropped;
++  {
++    ThreadedCompileSerialize guard;
++    auto it = anchored_compiled_funcs_.find(code);
++    if (it == anchored_compiled_funcs_.end()) {
++      return;
++    }
++    dropped = std::move(it->second);
++    anchored_compiled_funcs_.erase(it);
++  }
++  // Drop the references outside the guard; destroying a CompiledFunction
++  // re-enters the context with its own synchronization.
++}
++
++void Context::dropAnchoredCompiled(
++    BorrowedRef<PyCodeObject> code,
++    const CompiledFunction* compiled) {
++  ThreadedCompileSerialize guard;
++  auto it = anchored_compiled_funcs_.find(code);
++  if (it == anchored_compiled_funcs_.end()) {
++    return;
++  }
++  auto& anchored = it->second;
++  anchored.erase(
++      std::remove_if(
++          anchored.begin(),
++          anchored.end(),
++          [compiled](const Ref<CompiledFunction>& ref) {
++            return ref.get() == compiled;
++          }),
++      anchored.end());
++  if (anchored.empty()) {
++    anchored_compiled_funcs_.erase(it);
++  }
++}
++
+ void Context::forgetCompiledFunction(CompiledFunction& function) {
+   // tp_clear() can reach here from GC without going through a guarded
+   // top-level JIT entrypoint, so this path has to take the FT guard itself.
+@@ -811,16 +853,30 @@ Ref<CompiledFunction> Context::makeCompiledFunction(
+ 
+   // If the registered outer func for the code is different than the func we
+   // will register the CompiledCode on the outer most function.
++  bool outer_anchored = false;
+   if (outer != nullptr && outer->func_globals == key.globals &&
+-      outer->func_builtins == key.builtins &&
+-      !associateFunctionWithCompiled(outer, compiled, true)) {
+-    return nullptr;
++      outer->func_builtins == key.builtins) {
++    outer_anchored = associateFunctionWithCompiled(outer, compiled, true);
++    if (!outer_anchored) {
++      return nullptr;
++    }
+   }
+ 
+   if (func != nullptr && !finalizeFunc(func, compiled)) {
+     return nullptr;
+   }
+ 
++  if (!outer_anchored) {
++    // The compiling instance is the only function anchor (e.g. a transient
++    // genexpr factory); anchor the artifact on the code object's lifetime
++    // so sibling instances reuse it instead of recompiling per instance.
++    ThreadedCompileSerialize serialize;
++    Py_INCREF(compiled.get());
++    anchored_compiled_funcs_[BorrowedRef<PyCodeObject>{
++        reinterpret_cast<PyCodeObject*>(key.code)}]
++        .push_back(Ref<CompiledFunction>::steal(compiled.get()));
++  }
++
+   // We are storing a borrowed reference to the CompiledFunction. For functions,
+   // finalizeFunc has put the CompiledFunction in the function's dictionary to
+   // keep it alive. Code objects will be deleted when we receive a notification
+diff --git a/cinderx/Jit/context.h b/cinderx/Jit/context.h
+index a1f3b94b..93495a28 100644
+--- a/cinderx/Jit/context.h
++++ b/cinderx/Jit/context.h
+@@ -250,6 +250,14 @@ class Context : public IJitContext, public CompiledFunctionOwner {
+    * Remove the specified code object from the known compiled codes.
+    */
+   void forgetCode(BorrowedRef<PyFunctionObject> func);
++  /*
++   * Drop code-anchored references to compiled functions, either all of
++   * them for a code, or a specific compiled function.
++   */
++  void forgetAnchoredCompiled(BorrowedRef<PyCodeObject> code);
++  void dropAnchoredCompiled(
++      BorrowedRef<PyCodeObject> code,
++      const CompiledFunction* compiled);
+   /*
+    * Remove the specified code object from the known compiled codes.
+    */
+@@ -549,6 +557,18 @@ class Context : public IJitContext, public CompiledFunctionOwner {
+       std::vector<DeterministicCompileFailure>>
+       deterministic_compile_failures_;
+ 
++  /*
++   * Strong references keeping compiled artifacts for codes whose only
++   * function anchor is a transient instance (e.g. a genexpr factory)
++   * alive, so sibling instances of the same code attach the cached
++   * compilation instead of recompiling per instance. Dropped when the
++   * code object is destroyed.
++   */
++  UnorderedMap<
++      BorrowedRef<PyCodeObject>,
++      std::vector<Ref<CompiledFunction>>>
++      anchored_compiled_funcs_;
++
+   /*
+    * Compilations which have been finished but we haven't created the
+    * CompiledFunction objects yet. These are used in the multi-threaded compile
+diff --git a/cinderx/Jit/pyjit.cpp b/cinderx/Jit/pyjit.cpp
+index 73457629..9f6998cf 100644
+--- a/cinderx/Jit/pyjit.cpp
++++ b/cinderx/Jit/pyjit.cpp
+@@ -84,6 +84,7 @@ struct AutoJitGateStats {
+   std::atomic<uint64_t> jit_vectorcall{0};
+   std::atomic<uint64_t> global_threshold_return{0};
+   std::atomic<uint64_t> classified_schedule_cold_skip{0};
++  std::atomic<uint64_t> schedule_failure_cache_skip{0};
+   std::atomic<uint64_t> classified_warmup_return{0};
+   std::atomic<uint64_t> classified_defer_freeze{0};
+   std::atomic<uint64_t> forced_compile{0};
+@@ -115,6 +116,8 @@ void clearAutoJitGateStats() {
+       0, std::memory_order_relaxed);
+   g_auto_jit_gate_stats.classified_schedule_cold_skip.store(
+       0, std::memory_order_relaxed);
++  g_auto_jit_gate_stats.schedule_failure_cache_skip.store(
++      0, std::memory_order_relaxed);
+   g_auto_jit_gate_stats.classified_warmup_return.store(
+       0, std::memory_order_relaxed);
+   g_auto_jit_gate_stats.classified_defer_freeze.store(
+@@ -3429,6 +3432,10 @@ PyObject* autojit_gate_stats(PyObject* /* self */, PyObject*) {
+           stats,
+           "classified_schedule_cold_skip",
+           g_auto_jit_gate_stats.classified_schedule_cold_skip) != 0 ||
++      setAutoJitGateStat(
++          stats,
++          "schedule_failure_cache_skip",
++          g_auto_jit_gate_stats.schedule_failure_cache_skip) != 0 ||
+       setAutoJitGateStat(
+           stats,
+           "classified_warmup_return",
+@@ -4319,6 +4326,32 @@ Result compile_func(BorrowedRef<PyFunctionObject> func) {
+   // functions.
+   trackEligibleCodeObjects(func, func->func_code);
+ 
++  // Both the deterministic-failure cache and the compiled-code cache must
++  // gate preloading: transient closures (genexpr factories and the like)
++  // reach this path once per fresh instance, and the checks inside
++  // compilePreloader() otherwise run only after the full
++  // preloadFuncAndDeps() cost.
++  {
++    CompilationKey key{func};
++    if (jitCtx()->hasDeterministicCompileFailure(key)) {
++      return Result::CANNOT_SPECIALIZE;
++    }
++    auto compiled = jitCtx()->lookupCode(
++        key.code, key.builtins, key.globals, key.specialization);
++    if (compiled != nullptr) {
++      if (getThreadedCompileContext().compileRunning()) {
++        // Can't call finalizeFunc on a worker thread - it does Python
++        // allocations (PyDict_New, etc.) which require the GIL. Defer
++        // finalization to after multi-threaded compile completes.
++        jitCtx()->addDeferredFinalization(func, compiled);
++      } else if (!jitCtx()->finalizeFunc(func, compiled)) {
++        JIT_CHECK(PyErr_Occurred(), "should have set an error");
++        return Result::PYTHON_EXCEPTION;
++      }
++      return Result::OK;
++    }
++  }
++
+   // Collect a list of functions to compile.  If it's empty then there must have
+   // been a Python error during preloading.
+   std::vector<BorrowedRef<PyFunctionObject>> targets = preloadFuncAndDeps(func);
+@@ -4994,6 +5027,16 @@ bool scheduleJitCompile(BorrowedRef<PyFunctionObject> func) {
+     return true;
+   }
+ 
++  // Don't schedule fresh instances of a code whose exact compilation key
++  // already recorded a deterministic lowering failure.
++  {
++    CompilationKey key{func};
++    if (jitCtx()->hasDeterministicCompileFailure(key)) {
++      incAutoJitGateStat(g_auto_jit_gate_stats.schedule_failure_cache_skip);
++      return true;
++    }
++  }
++
+   if (shouldSkipAutoJitScheduleForSteadyColdCode(func)) {
+     incAutoJitGateStat(g_auto_jit_gate_stats.classified_schedule_cold_skip);
+     return true;
+@@ -5201,6 +5244,7 @@ void codeDestroyed(BorrowedRef<PyCodeObject> code) {
+     if (auto* ctx = jitCtx()) {
+       ctx->codeOuterFunctions().erase(code);
+       ctx->clearDeterministicCompileFailures(code);
++      ctx->forgetAnchoredCompiled(code);
+     }
+     notifyUnitDeletedDuringPreload(mod_state, code.getObj());
+   }
