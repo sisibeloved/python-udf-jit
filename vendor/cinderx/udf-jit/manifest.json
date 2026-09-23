@@ -31,8 +31,13 @@
       "path": "0006-udf-transient-closure-compile-reuse.patch",
       "sha256": "5ae52fd79eb4de859e290835972bedd46e81d82fe080a96edc2e0c2f2392b586",
       "changed_file_count": 3
+    },
+    {
+      "path": "0007-udf-closure-spec-compile-budget.patch",
+      "sha256": "31557668a4f091c213082583d23866535d2cbd618507d380e68f6fd41b77a9c9",
+      "changed_file_count": 3
     }
   ],
-  "patch_series_sha256": "cb8f82ffca7b98f58f4fa35ab4311f45bd80e30eee87aa946b9969db0d7e46c6",
+  "patch_series_sha256": "342a369a6140c730367a3c9687f420de5232671bb96802ffe04b7f0282dfa33a",
   "changed_file_count": 58
 }

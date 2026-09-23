@@ -8,7 +8,7 @@ pyperformance 验证所用运行时（`_cinderx.so` sha256 前缀 `f9a2916f`，
 修复版 `b2bc369d`、瞬态闭包修复版 `85a8eeac`）来自本系列。
 
 按 `manifest.json` 顺序应用补丁后，源码树等价于 cinderx 仓
-`feat-udf-jit` 分支（`7214f89d`）叠加第 5、6 两个补丁的修复；该分支本身
+`feat-udf-jit` 分支（`7214f89d`）叠加第 5、6、7 三个补丁的修复；该分支本身
 不作为集成线启用，内容以本系列为准。
 
 ## 补丁内容
@@ -51,13 +51,28 @@ pyperformance 验证所用运行时（`_cinderx.so` sha256 前缀 `f9a2916f`，
    （基线 264ms 口径下 21.84x 回归消除）。验证证据见 blue-204
    `/root/pyperf-results/dbg1/`（探针与 gdb 计数）与本仓
    `staging` 同步副本。
+7. **0007-udf-closure-spec-compile-budget**：修复捕获兄弟嵌套函数的
+   闭包被逐实例重复编译的问题。`closureFunctionTargetSignature` 将
+   闭包中函数值的实例身份编入编译缓存键（服务 frozen-closure 内联
+   的精确目标语义），而 `traceback._extract_caret_anchors_from_line_segment`
+   内的 `increment_until` 等闭包每次外层调用都捕获新建的兄弟函数
+   （`nextline`/`increment`），签名逐次不同（调试计数实测 101 次调用
+   101 个签名、缓存零命中、逐次完整重编约 2.4ms），异常格式化密集
+   的负载（如 sphinx 每次构建吞异常打 traceback）因此成倍变慢。
+   修复：`Context` 新增按 code 的非零 specialization 编译计数，
+   超过预算（4 次）即冻结为解释执行——`compile_func` 早查拒编、
+   `scheduleJitCompile` 停止调度新实例（`closure_spec_budget_skip`
+   计数）、`codeDestroyed` 回收计数；spec=0 的瞬态闭包（deepcopy
+   0006 场景）不受影响。效果：caret 锚点计算稳态 2414us -> 27.1us
+   （base 26.7us），pyperformance `sphinx` 7.21ms 对齐 base 7.15ms
+   （3.23x 回归消除）。
 
 ## 与标量主线系列的关系
 
 | 系列 | 目录 | 内容 | 状态 |
 |------|------|------|------|
 | 标量主线 | `vendor/cinderx/patches/`（0001–0006） | typed-loop 特化、序列内建、续体去优化、WX 双映射 | 既有 |
-| UDF-JIT | `vendor/cinderx/udf-jit/`（0001–0006） | UDF 续体/数据流、generic HIR typed region、守卫缓存、空指针修复、瞬态闭包编译复用 | 本系列 |
+| UDF-JIT | `vendor/cinderx/udf-jit/`（0001–0007） | UDF 续体/数据流、generic HIR typed region、守卫缓存、空指针修复、瞬态闭包编译复用、闭包特化编译预算 | 本系列 |
 
 `manifest.json` 沿用与标量主线相同的字段语义（逐补丁 sha256、
 `patch_series_sha256` 为按序拼接补丁字节的 sha256、`changed_file_count`

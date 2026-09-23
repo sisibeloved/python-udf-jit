@@ -1,0 +1,137 @@
+--- a/cinderx/Jit/pyjit.cpp	2026-09-23 00:47:31.854180683 -0600
++++ b/cinderx/Jit/pyjit.cpp	2026-09-23 00:47:33.207936587 -0600
+@@ -85,6 +85,7 @@
+   std::atomic<uint64_t> global_threshold_return{0};
+   std::atomic<uint64_t> classified_schedule_cold_skip{0};
+   std::atomic<uint64_t> schedule_failure_cache_skip{0};
++  std::atomic<uint64_t> closure_spec_budget_skip{0};
+   std::atomic<uint64_t> classified_warmup_return{0};
+   std::atomic<uint64_t> classified_defer_freeze{0};
+   std::atomic<uint64_t> forced_compile{0};
+@@ -118,6 +119,8 @@
+       0, std::memory_order_relaxed);
+   g_auto_jit_gate_stats.schedule_failure_cache_skip.store(
+       0, std::memory_order_relaxed);
++  g_auto_jit_gate_stats.closure_spec_budget_skip.store(
++      0, std::memory_order_relaxed);
+   g_auto_jit_gate_stats.classified_warmup_return.store(
+       0, std::memory_order_relaxed);
+   g_auto_jit_gate_stats.classified_defer_freeze.store(
+@@ -3438,6 +3441,10 @@
+           g_auto_jit_gate_stats.schedule_failure_cache_skip) != 0 ||
+       setAutoJitGateStat(
+           stats,
++          "closure_spec_budget_skip",
++          g_auto_jit_gate_stats.closure_spec_budget_skip) != 0 ||
++      setAutoJitGateStat(
++          stats,
+           "classified_warmup_return",
+           g_auto_jit_gate_stats.classified_warmup_return) != 0 ||
+       setAutoJitGateStat(
+@@ -4336,6 +4343,10 @@
+     if (jitCtx()->hasDeterministicCompileFailure(key)) {
+       return Result::CANNOT_SPECIALIZE;
+     }
++    if (jitCtx()->closureSpecBudgetExhausted(
++            BorrowedRef<PyCodeObject>{func->func_code})) {
++      return Result::CANNOT_SPECIALIZE;
++    }
+     auto compiled = jitCtx()->lookupCode(
+         key.code, key.builtins, key.globals, key.specialization);
+     if (compiled != nullptr) {
+@@ -5037,6 +5048,11 @@
+     }
+   }
+ 
++  if (jitCtx()->closureSpecBudgetExhausted(func->func_code)) {
++    incAutoJitGateStat(g_auto_jit_gate_stats.closure_spec_budget_skip);
++    return true;
++  }
++
+   if (shouldSkipAutoJitScheduleForSteadyColdCode(func)) {
+     incAutoJitGateStat(g_auto_jit_gate_stats.classified_schedule_cold_skip);
+     return true;
+@@ -5245,6 +5261,7 @@
+       ctx->codeOuterFunctions().erase(code);
+       ctx->clearDeterministicCompileFailures(code);
+       ctx->forgetAnchoredCompiled(code);
++      ctx->forgetClosureSpecCompiles(code);
+     }
+     notifyUnitDeletedDuringPreload(mod_state, code.getObj());
+   }
+--- a/cinderx/Jit/context.h	2026-09-23 00:47:33.292757672 -0600
++++ b/cinderx/Jit/context.h	2026-09-23 00:47:34.379936350 -0600
+@@ -255,6 +255,9 @@
+    * them for a code, or a specific compiled function.
+    */
+   void forgetAnchoredCompiled(BorrowedRef<PyCodeObject> code);
++  bool closureSpecBudgetExhausted(BorrowedRef<PyCodeObject> code);
++  void noteClosureSpecCompile(BorrowedRef<PyCodeObject> code);
++  void forgetClosureSpecCompiles(BorrowedRef<PyCodeObject> code);
+   void dropAnchoredCompiled(
+       BorrowedRef<PyCodeObject> code,
+       const CompiledFunction* compiled);
+@@ -570,6 +573,16 @@
+       anchored_compiled_funcs_;
+ 
+   /*
++   * Count of distinct nonzero closure-specialization compilations per
++   * code. Codes whose instances capture freshly created sibling
++   * functions produce a new specialization signature per instance; past
++   * the budget they are frozen to interpreted execution instead of
++   * recompiling once per instance.
++   */
++  UnorderedMap<BorrowedRef<PyCodeObject>, uint32_t>
++      closure_spec_compiles_;
++
++  /*
+    * Compilations which have been finished but we haven't created the
+    * CompiledFunction objects yet. These are used in the multi-threaded compile
+    * case to avoid creating CompiledFunction objects until after all the
+--- a/cinderx/Jit/context.cpp	2026-09-23 00:47:34.565931851 -0600
++++ b/cinderx/Jit/context.cpp	2026-09-23 00:47:35.703936084 -0600
+@@ -27,6 +27,7 @@
+ 
+ namespace {
+ constexpr std::size_t kMaxDeterministicFailuresPerCode = 64;
++constexpr uint32_t kMaxClosureSpecCompilesPerCode = 4;
+ }
+ 
+ AotContext g_aot_ctx;
+@@ -610,6 +611,23 @@
+   // re-enters the context with its own synchronization.
+ }
+ 
++bool Context::closureSpecBudgetExhausted(BorrowedRef<PyCodeObject> code) {
++  ThreadedCompileSerialize guard;
++  auto it = closure_spec_compiles_.find(code);
++  return it != closure_spec_compiles_.end() &&
++      it->second >= kMaxClosureSpecCompilesPerCode;
++}
++
++void Context::noteClosureSpecCompile(BorrowedRef<PyCodeObject> code) {
++  ThreadedCompileSerialize guard;
++  closure_spec_compiles_[code]++;
++}
++
++void Context::forgetClosureSpecCompiles(BorrowedRef<PyCodeObject> code) {
++  ThreadedCompileSerialize guard;
++  closure_spec_compiles_.erase(code);
++}
++
+ void Context::dropAnchoredCompiled(
+     BorrowedRef<PyCodeObject> code,
+     const CompiledFunction* compiled) {
+@@ -877,6 +895,12 @@
+         .push_back(Ref<CompiledFunction>::steal(compiled.get()));
+   }
+ 
++  if (key.specialization != 0) {
++    noteClosureSpecCompile(
++        BorrowedRef<PyCodeObject>{
++            reinterpret_cast<PyCodeObject*>(key.code)});
++  }
++
+   // We are storing a borrowed reference to the CompiledFunction. For functions,
+   // finalizeFunc has put the CompiledFunction in the function's dictionary to
+   // keep it alive. Code objects will be deleted when we receive a notification
