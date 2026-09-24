@@ -1,0 +1,22 @@
+diff --git a/cinderx/Jit/hir/builder.cpp b/cinderx/Jit/hir/builder.cpp
+index 769b072b..1247e5f2 100644
+--- a/cinderx/Jit/hir/builder.cpp
++++ b/cinderx/Jit/hir/builder.cpp
+@@ -138,7 +138,7 @@ Ref<> makeUdfInvariantState(BorrowedRef<PyFunctionObject> function) {
+   }
+   BorrowedRef<> descriptor =
+       PyDict_GetItemString(function->func_dict, kUdfInvariantCacheAttr);
+-  if (!PyDict_CheckExact(descriptor.get())) {
++  if (descriptor == nullptr || !PyDict_CheckExact(descriptor.get())) {
+     return nullptr;
+   }
+   BorrowedRef<> version = PyDict_GetItemString(descriptor.get(), "version");
+@@ -198,7 +198,7 @@ Ref<> makeUdfValueState(BorrowedRef<PyFunctionObject> function) {
+   }
+   BorrowedRef<> descriptor =
+       PyDict_GetItemString(function->func_dict, kUdfValueCacheAttr);
+-  if (!PyDict_CheckExact(descriptor.get())) {
++  if (descriptor == nullptr || !PyDict_CheckExact(descriptor.get())) {
+     return nullptr;
+   }
+   BorrowedRef<> version = PyDict_GetItemString(descriptor.get(), "version");

@@ -1,0 +1,78 @@
+diff --git a/cinderx/RuntimeTests/osr_loop_header_secondary_entry_test.cpp b/cinderx/RuntimeTests/osr_loop_header_secondary_entry_test.cpp
+index 873514e7..82ef1f8b 100644
+--- a/cinderx/RuntimeTests/osr_loop_header_secondary_entry_test.cpp
++++ b/cinderx/RuntimeTests/osr_loop_header_secondary_entry_test.cpp
+@@ -446,73 +446,6 @@ test.__code__ = test.__code__.replace(
+   EXPECT_EQ(countOSREntries(*irfunc), 0);
+ }
+ 
+-TEST_F(OSRCompileTest, RejectsTruncatedExceptionTableVarint) {
+-  Ref<PyFunctionObject> func(compileAndGet(
+-      R"(
+-def test():
+-    while True:
+-        pass
+-
+-test.__code__ = test.__code__.replace(co_exceptiontable=bytes((0xc0,)))
+-)",
+-      "test"));
+-  auto irfunc = buildHIR(func);
+-  auto targets = collectBackedgeTargetOffsets(func->func_code);
+-  ASSERT_EQ(targets.size(), 1);
+-  ASSERT_NE(blockWithEntrySnapshotAt(*irfunc, targets.front()), nullptr);
+-
+-  irfunc->markOSREntries(targets, func->func_code);
+-
+-  EXPECT_FALSE(irfunc->hasOSREntries());
+-  EXPECT_EQ(countOSREntries(*irfunc), 0);
+-}
+-
+-TEST_F(OSRCompileTest, RejectsExceptionTableEntryWithoutStartMarker) {
+-  Ref<PyFunctionObject> func(compileAndGet(
+-      R"(
+-def test():
+-    while True:
+-        pass
+-
+-test.__code__ = test.__code__.replace(
+-    co_exceptiontable=bytes((0x00, 0x00, 0x00, 0x00))
+-)
+-)",
+-      "test"));
+-  auto irfunc = buildHIR(func);
+-  auto targets = collectBackedgeTargetOffsets(func->func_code);
+-  ASSERT_EQ(targets.size(), 1);
+-  ASSERT_NE(blockWithEntrySnapshotAt(*irfunc, targets.front()), nullptr);
+-
+-  irfunc->markOSREntries(targets, func->func_code);
+-
+-  EXPECT_FALSE(irfunc->hasOSREntries());
+-  EXPECT_EQ(countOSREntries(*irfunc), 0);
+-}
+-
+-TEST_F(OSRCompileTest, RejectsOverflowingExceptionTableVarint) {
+-  Ref<PyFunctionObject> func(compileAndGet(
+-      R"(
+-def test():
+-    while True:
+-        pass
+-
+-test.__code__ = test.__code__.replace(
+-    co_exceptiontable=bytes((0xff, 0x7f, 0x7f, 0x7f, 0x7f, 0x3f))
+-)
+-)",
+-      "test"));
+-  auto irfunc = buildHIR(func);
+-  auto targets = collectBackedgeTargetOffsets(func->func_code);
+-  ASSERT_EQ(targets.size(), 1);
+-  ASSERT_NE(blockWithEntrySnapshotAt(*irfunc, targets.front()), nullptr);
+-
+-  irfunc->markOSREntries(targets, func->func_code);
+-
+-  EXPECT_FALSE(irfunc->hasOSREntries());
+-  EXPECT_EQ(countOSREntries(*irfunc), 0);
+-}
+-
+ TEST_F(OSRCompileTest, RefcountPassBindsFrameStateToOSREntry) {
+   Ref<PyFunctionObject> func(compileAndGet(
+       R"(

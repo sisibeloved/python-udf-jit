@@ -1,0 +1,1218 @@
+diff --git a/cinderx/Jit/hir/builder.cpp b/cinderx/Jit/hir/builder.cpp
+index 3994a3ca..769b072b 100644
+--- a/cinderx/Jit/hir/builder.cpp
++++ b/cinderx/Jit/hir/builder.cpp
+@@ -48,6 +48,249 @@ namespace jit::hir {
+ 
+ namespace {
+ 
++constexpr const char* kUdfInvariantCacheAttr = "__udfjit_invariant_cache__";
++constexpr const char* kUdfValueCacheAttr = "__udfjit_value_cache__";
++constexpr Py_ssize_t kMaxUdfInvariantWatchers = 32;
++constexpr Py_ssize_t kMaxUdfValueWatchers = 64;
++constexpr Py_ssize_t kMaxUdfValueCacheCapacity = 65536;
++
++bool isInvariantWatcherKey(BorrowedRef<> key) {
++  return PyUnicode_CheckExact(key) || PyBytes_CheckExact(key) ||
++      PyLong_CheckExact(key);
++}
++
++bool isValidInvariantWatcher(BorrowedRef<> watcher) {
++  if (!PyTuple_CheckExact(watcher.get()) ||
++      PyTuple_GET_SIZE(watcher.get()) != 3 ||
++      !PyUnicode_CheckExact(PyTuple_GET_ITEM(watcher.get(), 0))) {
++    return false;
++  }
++  BorrowedRef<> kind = PyTuple_GET_ITEM(watcher.get(), 0);
++  BorrowedRef<> owner = PyTuple_GET_ITEM(watcher.get(), 1);
++  BorrowedRef<> key = PyTuple_GET_ITEM(watcher.get(), 2);
++  if (PyUnicode_CompareWithASCIIString(kind.get(), "dict_item") == 0) {
++    return PyDict_CheckExact(owner.get()) && isInvariantWatcherKey(key);
++  }
++  if (PyUnicode_CompareWithASCIIString(kind.get(), "type_attr") == 0) {
++    return PyType_Check(owner.get()) && PyUnicode_CheckExact(key.get());
++  }
++  if (PyUnicode_CompareWithASCIIString(kind.get(), "function_code") == 0) {
++    return PyFunction_Check(owner.get()) && PyUnicode_CheckExact(key.get()) &&
++        PyUnicode_CompareWithASCIIString(key.get(), "__code__") == 0;
++  }
++  return false;
++}
++
++bool isValidValueWatcher(BorrowedRef<> watcher) {
++  if (isValidInvariantWatcher(watcher)) {
++    return true;
++  }
++  if (!PyTuple_CheckExact(watcher.get()) ||
++      PyTuple_GET_SIZE(watcher.get()) != 3 ||
++      !PyUnicode_CheckExact(PyTuple_GET_ITEM(watcher.get(), 0))) {
++    return false;
++  }
++  BorrowedRef<> kind = PyTuple_GET_ITEM(watcher.get(), 0);
++  BorrowedRef<> owner = PyTuple_GET_ITEM(watcher.get(), 1);
++  BorrowedRef<> key = PyTuple_GET_ITEM(watcher.get(), 2);
++  return PyUnicode_CompareWithASCIIString(kind.get(), "call_result_identity") ==
++      0 &&
++      PyCallable_Check(owner.get()) && isInvariantWatcherKey(key);
++}
++
++bool isExactUnicodePath(BorrowedRef<> path) {
++  if (!PyTuple_CheckExact(path.get()) || PyTuple_GET_SIZE(path.get()) <= 0) {
++    return false;
++  }
++  for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(path.get()); i++) {
++    if (!PyUnicode_CheckExact(PyTuple_GET_ITEM(path.get(), i))) {
++      return false;
++    }
++  }
++  return true;
++}
++
++bool isValidValueEntryGuard(BorrowedRef<> guard) {
++  if (guard == nullptr || guard == Py_None) {
++    return true;
++  }
++  if (!PyTuple_CheckExact(guard.get()) || PyTuple_GET_SIZE(guard.get()) != 5) {
++    return false;
++  }
++  BorrowedRef<> mode = PyTuple_GET_ITEM(guard.get(), 0);
++  BorrowedRef<> decoder = PyTuple_GET_ITEM(guard.get(), 1);
++  BorrowedRef<> key_path = PyTuple_GET_ITEM(guard.get(), 2);
++  BorrowedRef<> observer = PyTuple_GET_ITEM(guard.get(), 3);
++  BorrowedRef<> expected_path = PyTuple_GET_ITEM(guard.get(), 4);
++  return PyUnicode_CheckExact(mode.get()) &&
++      PyUnicode_CompareWithASCIIString(mode.get(), "json_result_call_value") ==
++      0 &&
++      PyCallable_Check(decoder.get()) && isExactUnicodePath(key_path) &&
++      PyCallable_Check(observer.get()) && isExactUnicodePath(expected_path);
++}
++
++// Validate the compiler-provided dependency descriptor and allocate all
++// mutable cache storage before HIR runs.  Malformed or unsupported metadata
++// fails closed by returning nullptr, leaving the ordinary function HIR intact.
++Ref<> makeUdfInvariantState(BorrowedRef<PyFunctionObject> function) {
++  if (function == nullptr || function->func_dict == nullptr) {
++    return nullptr;
++  }
++  BorrowedRef<> descriptor =
++      PyDict_GetItemString(function->func_dict, kUdfInvariantCacheAttr);
++  if (!PyDict_CheckExact(descriptor.get())) {
++    return nullptr;
++  }
++  BorrowedRef<> version = PyDict_GetItemString(descriptor.get(), "version");
++  BorrowedRef<> argument_modes =
++      PyDict_GetItemString(descriptor.get(), "argument_modes");
++  BorrowedRef<> watchers = PyDict_GetItemString(descriptor.get(), "watchers");
++  if (!PyLong_CheckExact(version.get()) || PyLong_AsLong(version.get()) != 1 ||
++      !PyTuple_CheckExact(argument_modes.get()) ||
++      PyTuple_GET_SIZE(argument_modes.get()) != 1 ||
++      !PyUnicode_CheckExact(PyTuple_GET_ITEM(argument_modes.get(), 0)) ||
++      PyUnicode_CompareWithASCIIString(
++          PyTuple_GET_ITEM(argument_modes.get(), 0), "identity") != 0 ||
++      !PyTuple_CheckExact(watchers.get()) ||
++      PyTuple_GET_SIZE(watchers.get()) <= 0 ||
++      PyTuple_GET_SIZE(watchers.get()) > kMaxUdfInvariantWatchers) {
++    PyErr_Clear();
++    return nullptr;
++  }
++  for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(watchers.get()); i++) {
++    BorrowedRef<> watcher = PyTuple_GET_ITEM(watchers.get(), i);
++    if (!isValidInvariantWatcher(watcher)) {
++      PyErr_Clear();
++      return nullptr;
++    }
++  }
++
++  auto missing = Ref<>::steal(PyCapsule_New(
++      reinterpret_cast<void*>(1), "cinderx.udf_invariant_missing", nullptr));
++  auto snapshots = Ref<>::steal(PyList_New(PyTuple_GET_SIZE(watchers.get())));
++  auto state = Ref<>::steal(PyList_New(kUdfInvariantStateSize));
++  if (missing == nullptr || snapshots == nullptr || state == nullptr) {
++    PyErr_Clear();
++    return nullptr;
++  }
++  for (Py_ssize_t i = 0; i < PyList_GET_SIZE(snapshots); i++) {
++    Py_INCREF(missing.get());
++    PyList_SET_ITEM(snapshots, i, missing.get());
++  }
++  auto set_state = [&](Py_ssize_t index, BorrowedRef<> value) {
++    Py_INCREF(value.get());
++    PyList_SET_ITEM(state, index, value.get());
++  };
++  set_state(kUdfInvariantWatchers, watchers);
++  set_state(kUdfInvariantSnapshots, snapshots);
++  set_state(kUdfInvariantArgument0, Py_None);
++  set_state(kUdfInvariantResult, Py_None);
++  set_state(kUdfInvariantValid, Py_False);
++  set_state(kUdfInvariantMissing, missing);
++  return state;
++}
++
++// Validate a provider-neutral exact-value descriptor.  This capability is
++// deliberately narrow: unsupported signatures or types retain ordinary HIR.
++Ref<> makeUdfValueState(BorrowedRef<PyFunctionObject> function) {
++  if (function == nullptr || function->func_dict == nullptr) {
++    return nullptr;
++  }
++  BorrowedRef<> descriptor =
++      PyDict_GetItemString(function->func_dict, kUdfValueCacheAttr);
++  if (!PyDict_CheckExact(descriptor.get())) {
++    return nullptr;
++  }
++  BorrowedRef<> version = PyDict_GetItemString(descriptor.get(), "version");
++  BorrowedRef<> argument_modes =
++      PyDict_GetItemString(descriptor.get(), "argument_modes");
++  BorrowedRef<> argument_values =
++      PyDict_GetItemString(descriptor.get(), "argument_values");
++  BorrowedRef<> result_mode =
++      PyDict_GetItemString(descriptor.get(), "result_mode");
++  BorrowedRef<> capacity = PyDict_GetItemString(descriptor.get(), "capacity");
++  BorrowedRef<> watchers = PyDict_GetItemString(descriptor.get(), "watchers");
++  BorrowedRef<> entry_guard =
++      PyDict_GetItemString(descriptor.get(), "entry_guard");
++  bool three_argument_shape = PyTuple_CheckExact(argument_modes.get()) &&
++      PyTuple_GET_SIZE(argument_modes.get()) == 3 &&
++      PyUnicode_CheckExact(PyTuple_GET_ITEM(argument_modes.get(), 1)) &&
++      PyUnicode_CompareWithASCIIString(
++          PyTuple_GET_ITEM(argument_modes.get(), 1), "identity") == 0 &&
++      PyUnicode_CheckExact(PyTuple_GET_ITEM(argument_modes.get(), 2)) &&
++      PyUnicode_CompareWithASCIIString(
++          PyTuple_GET_ITEM(argument_modes.get(), 2), "empty_dict") == 0 &&
++      PyTuple_CheckExact(argument_values.get()) &&
++      PyTuple_GET_SIZE(argument_values.get()) == 1;
++  bool two_argument_shape = PyTuple_CheckExact(argument_modes.get()) &&
++      PyTuple_GET_SIZE(argument_modes.get()) == 2 &&
++      PyUnicode_CheckExact(PyTuple_GET_ITEM(argument_modes.get(), 1)) &&
++      PyUnicode_CompareWithASCIIString(
++          PyTuple_GET_ITEM(argument_modes.get(), 1), "empty_dict") == 0 &&
++      PyTuple_CheckExact(argument_values.get()) &&
++      PyTuple_GET_SIZE(argument_values.get()) == 0;
++  if (!PyLong_CheckExact(version.get()) || PyLong_AsLong(version.get()) != 1 ||
++      !PyTuple_CheckExact(argument_modes.get()) ||
++      (!three_argument_shape && !two_argument_shape) ||
++      !PyUnicode_CheckExact(PyTuple_GET_ITEM(argument_modes.get(), 0)) ||
++      PyUnicode_CompareWithASCIIString(
++          PyTuple_GET_ITEM(argument_modes.get(), 0), "exact_unicode_value") !=
++          0 ||
++      !PyUnicode_CheckExact(result_mode.get()) ||
++      PyUnicode_CompareWithASCIIString(result_mode.get(), "exact_unicode") !=
++          0 ||
++      !PyLong_CheckExact(capacity.get()) ||
++      PyLong_AsLong(capacity.get()) <= 0 ||
++      PyLong_AsLong(capacity.get()) > kMaxUdfValueCacheCapacity ||
++      !PyTuple_CheckExact(watchers.get()) ||
++      PyTuple_GET_SIZE(watchers.get()) <= 0 ||
++      PyTuple_GET_SIZE(watchers.get()) > kMaxUdfValueWatchers ||
++      !isValidValueEntryGuard(entry_guard)) {
++    PyErr_Clear();
++    return nullptr;
++  }
++  for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(watchers.get()); i++) {
++    if (!isValidValueWatcher(PyTuple_GET_ITEM(watchers.get(), i))) {
++      PyErr_Clear();
++      return nullptr;
++    }
++  }
++
++  auto missing = Ref<>::steal(PyCapsule_New(
++      reinterpret_cast<void*>(1), "cinderx.udf_value_missing", nullptr));
++  auto snapshots = Ref<>::steal(PyList_New(PyTuple_GET_SIZE(watchers.get())));
++  auto entries = Ref<>::steal(PyDict_New());
++  auto entry_guard_entries = Ref<>::steal(PyDict_New());
++  auto state = Ref<>::steal(PyList_New(kUdfValueStateSize));
++  if (missing == nullptr || snapshots == nullptr || entries == nullptr ||
++      entry_guard_entries == nullptr || state == nullptr) {
++    PyErr_Clear();
++    return nullptr;
++  }
++  for (Py_ssize_t i = 0; i < PyList_GET_SIZE(snapshots); i++) {
++    Py_INCREF(missing.get());
++    PyList_SET_ITEM(snapshots, i, missing.get());
++  }
++  auto set_state = [&](Py_ssize_t index, BorrowedRef<> value) {
++    Py_INCREF(value.get());
++    PyList_SET_ITEM(state, index, value.get());
++  };
++  set_state(kUdfValueWatchers, watchers);
++  set_state(kUdfValueSnapshots, snapshots);
++  set_state(kUdfValueExpectedArguments, argument_values);
++  set_state(kUdfValueEntries, entries);
++  set_state(kUdfValueLastResult, Py_None);
++  set_state(kUdfValueSnapshotsValid, Py_False);
++  set_state(kUdfValueDisabled, Py_False);
++  set_state(kUdfValueMissing, missing);
++  set_state(kUdfValueCapacity, capacity);
++  set_state(
++      kUdfValueEntryGuard,
++      entry_guard == nullptr ? BorrowedRef<>(Py_None) : entry_guard);
++  set_state(kUdfValueEntryGuardEntries, entry_guard_entries);
++  return state;
++}
++
+ #if PY_VERSION_HEX >= 0x030E0000
+ PyObject* readCacheObj(
+     PyCodeObject* code,
+@@ -852,10 +1095,31 @@ BasicBlock* HIRBuilder::buildHIRImpl(
+   BytecodeInstructionBlock bc_instrs{code_};
+   block_map_ = createBlocks(*irfunc, bc_instrs);
+ 
++  Ref<> invariant_state;
++  Ref<> value_state;
++  if (frame_state == nullptr && exact_function_ != nullptr &&
++      preloader_.numArgs() == 1 && numFreevars(code_) == 0 &&
++      !(code_->co_flags & (CO_VARARGS | CO_VARKEYWORDS))) {
++    ThreadedCompileSerialize guard;
++    invariant_state = makeUdfInvariantState(exact_function_);
++  }
++  if (frame_state == nullptr && exact_function_ != nullptr &&
++      ((preloader_.numArgs() == 3 && code_->co_kwonlyargcount == 1) ||
++       (preloader_.numArgs() == 2 && code_->co_kwonlyargcount == 0)) &&
++      code_->co_argcount == 1 && numFreevars(code_) == 0 &&
++      !(code_->co_flags & CO_VARARGS) && (code_->co_flags & CO_VARKEYWORDS)) {
++    ThreadedCompileSerialize guard;
++    value_state = makeUdfValueState(exact_function_);
++  }
++  bool has_udf_cache = invariant_state != nullptr || value_state != nullptr;
++
+   // Ensure that the entry block isn't a loop header
+   BasicBlock* entry_block = getBlockAtOff(BCOffset{0});
++  if (has_udf_cache) {
++    entry_block = irfunc->cfg.AllocateBlock();
++  }
+   for (const auto& bci : bc_instrs) {
+-    if (bci.isBranch() && bci.getJumpTarget() == 0) {
++    if (!has_udf_cache && bci.isBranch() && bci.getJumpTarget() == 0) {
+       entry_block = irfunc->cfg.AllocateBlock();
+       break;
+     }
+@@ -892,13 +1156,126 @@ BasicBlock* HIRBuilder::buildHIRImpl(
+   // "RETURN_GENERATOR" and so is emitted at the appropriate time.
+ 
+   BasicBlock* first_block = getBlockAtOff(BCOffset{0});
+-  if (entry_block != first_block) {
++  Register* invariant_state_reg = nullptr;
++  Register* invariant_arg_reg = nullptr;
++  BasicBlock* invariant_hit_block = nullptr;
++  Register* value_state_reg = nullptr;
++  Register* value_arg0_reg = nullptr;
++  Register* value_arg1_reg = nullptr;
++  Register* value_arg2_reg = nullptr;
++  BasicBlock* value_hit_block = nullptr;
++  if (invariant_state != nullptr) {
++    BorrowedRef<> owned_state =
++        irfunc->env.addReference(std::move(invariant_state));
++    invariant_state_reg = temps_.AllocateNonStack();
++    entry_tc.emit<LoadConst>(
++        invariant_state_reg, Type::fromCPtr(owned_state.get()));
++    invariant_arg_reg = entry_tc.frame.localsplus.at(0);
++    Register* cache_hit_raw = temps_.AllocateNonStack();
++    auto lookup = entry_tc.emit<CallStatic>(
++        2,
++        cache_hit_raw,
++        reinterpret_cast<void*>(JITRT_UdfInvariantCacheLookup1),
++        TCInt64);
++    lookup->SetOperand(0, invariant_state_reg);
++    lookup->SetOperand(1, invariant_arg_reg);
++    Register* zero = temps_.AllocateNonStack();
++    entry_tc.emit<LoadConst>(zero, Type::fromCInt(0, TCInt64));
++    Register* cache_hit = temps_.AllocateNonStack();
++    entry_tc.emit<PrimitiveCompare>(
++        cache_hit, PrimitiveCompareOp::kNotEqual, cache_hit_raw, zero);
++    invariant_hit_block = irfunc->cfg.AllocateBlock();
++    entry_tc.emit<CondBranch>(cache_hit, invariant_hit_block, first_block);
++    entry_tc.block = invariant_hit_block;
++    Register* cached_result = temps_.AllocateNonStack();
++    auto load_result = entry_tc.emit<CallStatic>(
++        1,
++        cached_result,
++        reinterpret_cast<void*>(JITRT_UdfInvariantCacheResult),
++        TObject);
++    load_result->SetOperand(0, invariant_state_reg);
++    entry_tc.emit<Return>(cached_result);
++  } else if (value_state != nullptr) {
++    BorrowedRef<> owned_state =
++        irfunc->env.addReference(std::move(value_state));
++    value_state_reg = temps_.AllocateNonStack();
++    entry_tc.emit<LoadConst>(
++        value_state_reg, Type::fromCPtr(owned_state.get()));
++    value_arg0_reg = entry_tc.frame.localsplus.at(0);
++    if (preloader_.numArgs() == 3) {
++      value_arg1_reg = entry_tc.frame.localsplus.at(1);
++      value_arg2_reg = entry_tc.frame.localsplus.at(2);
++    } else {
++      value_arg1_reg = temps_.AllocateNonStack();
++      entry_tc.emit<LoadConst>(value_arg1_reg, Type::fromObject(Py_None));
++      value_arg2_reg = entry_tc.frame.localsplus.at(1);
++    }
++    Register* cache_hit_raw = temps_.AllocateNonStack();
++    auto lookup = entry_tc.emit<CallStatic>(
++        4,
++        cache_hit_raw,
++        reinterpret_cast<void*>(JITRT_UdfValueCacheLookup3),
++        TCInt64);
++    lookup->SetOperand(0, value_state_reg);
++    lookup->SetOperand(1, value_arg0_reg);
++    lookup->SetOperand(2, value_arg1_reg);
++    lookup->SetOperand(3, value_arg2_reg);
++    Register* zero = temps_.AllocateNonStack();
++    entry_tc.emit<LoadConst>(zero, Type::fromCInt(0, TCInt64));
++    Register* cache_hit = temps_.AllocateNonStack();
++    entry_tc.emit<PrimitiveCompare>(
++        cache_hit, PrimitiveCompareOp::kNotEqual, cache_hit_raw, zero);
++    value_hit_block = irfunc->cfg.AllocateBlock();
++    entry_tc.emit<CondBranch>(cache_hit, value_hit_block, first_block);
++    entry_tc.block = value_hit_block;
++    Register* cached_result = temps_.AllocateNonStack();
++    auto load_result = entry_tc.emit<CallStatic>(
++        1,
++        cached_result,
++        reinterpret_cast<void*>(JITRT_UdfValueCacheResult),
++        TObject);
++    load_result->SetOperand(0, value_state_reg);
++    entry_tc.emit<Return>(cached_result);
++  } else if (entry_block != first_block) {
+     entry_block->appendWithOff<Branch>(BCOffset{0}, first_block);
+   }
+ 
+   entry_tc.block = first_block;
+   translate(*irfunc, bc_instrs, entry_tc);
+ 
++  if (invariant_state_reg != nullptr) {
++    for (BasicBlock* block : irfunc->cfg.GetRPOTraversal(first_block)) {
++      Instr* terminator = block->GetTerminator();
++      if (!terminator->IsReturn()) {
++        continue;
++      }
++      auto update = CallStaticRetVoid::create(
++          3, reinterpret_cast<void*>(JITRT_UdfInvariantCacheUpdate1));
++      update->SetOperand(0, invariant_state_reg);
++      update->SetOperand(1, invariant_arg_reg);
++      update->SetOperand(2, terminator->GetOperand(0));
++      update->copyBytecodeOffset(*terminator);
++      update->InsertBefore(*terminator);
++    }
++  }
++  if (value_state_reg != nullptr) {
++    for (BasicBlock* block : irfunc->cfg.GetRPOTraversal(first_block)) {
++      Instr* terminator = block->GetTerminator();
++      if (!terminator->IsReturn()) {
++        continue;
++      }
++      auto update = CallStaticRetVoid::create(
++          5, reinterpret_cast<void*>(JITRT_UdfValueCacheUpdate3));
++      update->SetOperand(0, value_state_reg);
++      update->SetOperand(1, value_arg0_reg);
++      update->SetOperand(2, value_arg1_reg);
++      update->SetOperand(3, value_arg2_reg);
++      update->SetOperand(4, terminator->GetOperand(0));
++      update->copyBytecodeOffset(*terminator);
++      update->InsertBefore(*terminator);
++    }
++  }
++
+   return entry_block;
+ }
+ 
+diff --git a/cinderx/Jit/jit_rt.cpp b/cinderx/Jit/jit_rt.cpp
+index ca083558..d77b6b04 100644
+--- a/cinderx/Jit/jit_rt.cpp
++++ b/cinderx/Jit/jit_rt.cpp
+@@ -646,6 +646,362 @@ PyObject* JITRT_UdfDataStoreNull(PyObject*, PyObject* capsule) {
+ 
+ namespace {
+ 
++PyObject* invariantWatchedValue(PyObject* watcher, PyObject* missing_sentinel) {
++  JIT_DCHECK(
++      PyTuple_CheckExact(watcher) && PyTuple_GET_SIZE(watcher) == 3,
++      "validated invariant watcher must be a three-tuple");
++  PyObject* kind = PyTuple_GET_ITEM(watcher, 0);
++  PyObject* owner = PyTuple_GET_ITEM(watcher, 1);
++  PyObject* key = PyTuple_GET_ITEM(watcher, 2);
++  if (PyUnicode_CompareWithASCIIString(kind, "dict_item") == 0) {
++    JIT_DCHECK(
++        PyDict_CheckExact(owner),
++        "validated dict watcher must reference an exact dict");
++    PyObject* value = PyDict_GetItemWithError(owner, key);
++    if (value != nullptr) {
++      return value;
++    }
++    // Descriptor validation only accepts exact immutable builtin keys, so a
++    // failed lookup means absence rather than arbitrary user-code failure.
++    JIT_DCHECK(!PyErr_Occurred(), "exact invariant watcher key lookup raised");
++    if (PyErr_Occurred()) {
++      PyErr_Clear();
++    }
++    return missing_sentinel;
++  }
++  if (PyUnicode_CompareWithASCIIString(kind, "type_attr") == 0) {
++    JIT_DCHECK(PyType_Check(owner), "validated type watcher owner is invalid");
++    PyObject* value =
++        _PyType_Lookup(reinterpret_cast<PyTypeObject*>(owner), key);
++    return value == nullptr ? missing_sentinel : value;
++  }
++  JIT_DCHECK(
++      PyUnicode_CompareWithASCIIString(kind, "function_code") == 0 &&
++          PyFunction_Check(owner),
++      "validated function-code watcher is invalid");
++  return reinterpret_cast<PyFunctionObject*>(owner)->func_code;
++}
++
++void replaceInvariantStateItem(
++    PyObject* state,
++    Py_ssize_t index,
++    PyObject* value) {
++  Py_INCREF(value);
++  int result = PyList_SetItem(state, index, value);
++  JIT_DCHECK(result == 0, "preallocated invariant state update failed");
++  if (result < 0) {
++    PyErr_Clear();
++  }
++}
++
++PyObject* valueCacheWatchedValue(
++    PyObject* watcher,
++    PyObject* missing_sentinel,
++    bool* owned) {
++  PyObject* kind = PyTuple_GET_ITEM(watcher, 0);
++  if (PyUnicode_CompareWithASCIIString(kind, "call_result_identity") == 0) {
++    *owned = true;
++    return PyObject_CallOneArg(
++        PyTuple_GET_ITEM(watcher, 1), PyTuple_GET_ITEM(watcher, 2));
++  }
++  *owned = false;
++  return invariantWatchedValue(watcher, missing_sentinel);
++}
++
++void disableUdfValueCache(PyObject* state) {
++  replaceInvariantStateItem(state, kUdfValueDisabled, Py_True);
++  PyDict_Clear(PyList_GET_ITEM(state, kUdfValueEntries));
++  PyDict_Clear(PyList_GET_ITEM(state, kUdfValueEntryGuardEntries));
++  replaceInvariantStateItem(state, kUdfValueLastResult, Py_None);
++}
++
++bool udfValueCallShapeMatches(
++    PyObject* state,
++    PyObject* argument0,
++    PyObject* argument1,
++    PyObject* argument2) {
++  PyObject* expected = PyList_GET_ITEM(state, kUdfValueExpectedArguments);
++  if (!PyUnicode_CheckExact(argument0) || !PyTuple_CheckExact(expected) ||
++      !PyDict_CheckExact(argument2) || PyDict_GET_SIZE(argument2) != 0) {
++    return false;
++  }
++  if (PyTuple_GET_SIZE(expected) == 0) {
++    return argument1 == Py_None;
++  }
++  return PyTuple_GET_SIZE(expected) == 1 &&
++      argument1 == PyTuple_GET_ITEM(expected, 0);
++}
++
++PyObject* udfValueAtExactPath(PyObject* value, PyObject* path) {
++  PyObject* current = value;
++  for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(path); i++) {
++    if (!PyDict_CheckExact(current)) {
++      return nullptr;
++    }
++    current = PyDict_GetItemWithError(current, PyTuple_GET_ITEM(path, i));
++    if (current == nullptr) {
++      return nullptr;
++    }
++  }
++  return current;
++}
++
++int udfValueEntryGuardMatches(PyObject* state, PyObject* result) {
++  PyObject* guard = PyList_GET_ITEM(state, kUdfValueEntryGuard);
++  if (guard == Py_None) {
++    return 1;
++  }
++  PyObject* guard_entries = PyList_GET_ITEM(state, kUdfValueEntryGuardEntries);
++  PyObject* snapshot = PyDict_GetItemWithError(guard_entries, result);
++  Ref<> owned_snapshot;
++  if (snapshot == nullptr) {
++    if (PyErr_Occurred()) {
++      return -1;
++    }
++    auto decoded =
++        Ref<>::steal(PyObject_CallOneArg(PyTuple_GET_ITEM(guard, 1), result));
++    if (decoded == nullptr) {
++      return -1;
++    }
++    PyObject* key = udfValueAtExactPath(decoded, PyTuple_GET_ITEM(guard, 2));
++    PyObject* expected =
++        udfValueAtExactPath(decoded, PyTuple_GET_ITEM(guard, 4));
++    if (key == nullptr || expected == nullptr) {
++      return -1;
++    }
++    owned_snapshot = Ref<>::steal(PyTuple_Pack(2, key, expected));
++    if (owned_snapshot == nullptr ||
++        PyDict_SetItem(guard_entries, result, owned_snapshot) < 0) {
++      return -1;
++    }
++    snapshot = owned_snapshot.get();
++  }
++
++  auto observed = Ref<>::steal(PyObject_CallOneArg(
++      PyTuple_GET_ITEM(guard, 3), PyTuple_GET_ITEM(snapshot, 0)));
++  if (observed == nullptr) {
++    return -1;
++  }
++  PyObject* expected = PyTuple_GET_ITEM(snapshot, 1);
++  if (Py_TYPE(observed.get()) != Py_TYPE(expected)) {
++    return 0;
++  }
++  return PyObject_RichCompareBool(observed, expected, Py_EQ);
++}
++
++bool snapshotUdfValueDependencies(PyObject* state) {
++  PyObject* watchers = PyList_GET_ITEM(state, kUdfValueWatchers);
++  PyObject* snapshots = PyList_GET_ITEM(state, kUdfValueSnapshots);
++  PyObject* missing = PyList_GET_ITEM(state, kUdfValueMissing);
++  for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(watchers); i++) {
++    bool owned = false;
++    PyObject* current =
++        valueCacheWatchedValue(PyTuple_GET_ITEM(watchers, i), missing, &owned);
++    if (current == nullptr) {
++      PyErr_Clear();
++      return false;
++    }
++    replaceInvariantStateItem(snapshots, i, current);
++    if (owned) {
++      Py_DECREF(current);
++    }
++  }
++  replaceInvariantStateItem(state, kUdfValueSnapshotsValid, Py_True);
++  return true;
++}
++
++bool udfValueDependenciesMatch(PyObject* state) {
++  PyObject* watchers = PyList_GET_ITEM(state, kUdfValueWatchers);
++  PyObject* snapshots = PyList_GET_ITEM(state, kUdfValueSnapshots);
++  PyObject* missing = PyList_GET_ITEM(state, kUdfValueMissing);
++  for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(watchers); i++) {
++    bool owned = false;
++    PyObject* current =
++        valueCacheWatchedValue(PyTuple_GET_ITEM(watchers, i), missing, &owned);
++    if (current == nullptr) {
++      PyErr_Clear();
++      return false;
++    }
++    bool matches = current == PyList_GET_ITEM(snapshots, i);
++    if (owned) {
++      Py_DECREF(current);
++    }
++    if (!matches) {
++      return false;
++    }
++  }
++  return true;
++}
++
++} // namespace
++
++int64_t JITRT_UdfInvariantCacheLookup1(PyObject* state, PyObject* argument0) {
++  JIT_DCHECK(
++      PyList_CheckExact(state) &&
++          PyList_GET_SIZE(state) == kUdfInvariantStateSize,
++      "invalid compiler-created invariant state");
++  if (PyList_GET_ITEM(state, kUdfInvariantValid) != Py_True ||
++      PyList_GET_ITEM(state, kUdfInvariantArgument0) != argument0) {
++    return 0;
++  }
++
++  PyObject* watchers = PyList_GET_ITEM(state, kUdfInvariantWatchers);
++  PyObject* snapshots = PyList_GET_ITEM(state, kUdfInvariantSnapshots);
++  PyObject* missing = PyList_GET_ITEM(state, kUdfInvariantMissing);
++  JIT_DCHECK(
++      PyTuple_CheckExact(watchers) && PyList_CheckExact(snapshots) &&
++          PyTuple_GET_SIZE(watchers) == PyList_GET_SIZE(snapshots),
++      "invalid compiler-created invariant watcher state");
++  for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(watchers); i++) {
++    PyObject* current =
++        invariantWatchedValue(PyTuple_GET_ITEM(watchers, i), missing);
++    if (current != PyList_GET_ITEM(snapshots, i)) {
++      return 0;
++    }
++  }
++
++  return 1;
++}
++
++PyObject* JITRT_UdfInvariantCacheResult(PyObject* state) {
++  JIT_DCHECK(
++      PyList_CheckExact(state) &&
++          PyList_GET_SIZE(state) == kUdfInvariantStateSize &&
++          PyList_GET_ITEM(state, kUdfInvariantValid) == Py_True,
++      "invalid compiler-created invariant cache hit");
++  PyObject* result = PyList_GET_ITEM(state, kUdfInvariantResult);
++  Py_INCREF(result);
++  return result;
++}
++
++void JITRT_UdfInvariantCacheUpdate1(
++    PyObject* state,
++    PyObject* argument0,
++    PyObject* result) {
++  JIT_DCHECK(
++      PyList_CheckExact(state) &&
++          PyList_GET_SIZE(state) == kUdfInvariantStateSize,
++      "invalid compiler-created invariant state");
++  PyObject* watchers = PyList_GET_ITEM(state, kUdfInvariantWatchers);
++  PyObject* snapshots = PyList_GET_ITEM(state, kUdfInvariantSnapshots);
++  PyObject* missing = PyList_GET_ITEM(state, kUdfInvariantMissing);
++  for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(watchers); i++) {
++    replaceInvariantStateItem(
++        snapshots,
++        i,
++        invariantWatchedValue(PyTuple_GET_ITEM(watchers, i), missing));
++  }
++  replaceInvariantStateItem(state, kUdfInvariantArgument0, argument0);
++  replaceInvariantStateItem(state, kUdfInvariantResult, result);
++  replaceInvariantStateItem(state, kUdfInvariantValid, Py_True);
++}
++
++int64_t JITRT_UdfValueCacheLookup3(
++    PyObject* state,
++    PyObject* argument0,
++    PyObject* argument1,
++    PyObject* argument2) {
++  JIT_DCHECK(
++      PyList_CheckExact(state) && PyList_GET_SIZE(state) == kUdfValueStateSize,
++      "invalid compiler-created UDF value-cache state");
++  if (PyList_GET_ITEM(state, kUdfValueDisabled) == Py_True) {
++    return 0;
++  }
++  if (!udfValueCallShapeMatches(state, argument0, argument1, argument2)) {
++    return 0;
++  }
++  if (PyList_GET_ITEM(state, kUdfValueSnapshotsValid) != Py_True) {
++    return 0;
++  }
++  if (!udfValueDependenciesMatch(state)) {
++    disableUdfValueCache(state);
++    return 0;
++  }
++
++  PyObject* entries = PyList_GET_ITEM(state, kUdfValueEntries);
++  PyObject* result = PyDict_GetItemWithError(entries, argument0);
++  if (result == nullptr) {
++    if (PyErr_Occurred()) {
++      PyErr_Clear();
++      disableUdfValueCache(state);
++    }
++    return 0;
++  }
++  int entry_guard_matches = udfValueEntryGuardMatches(state, result);
++  if (entry_guard_matches <= 0) {
++    if (entry_guard_matches < 0) {
++      PyErr_Clear();
++      disableUdfValueCache(state);
++    } else {
++      PyDict_DelItem(entries, argument0);
++      PyErr_Clear();
++      PyDict_DelItem(
++          PyList_GET_ITEM(state, kUdfValueEntryGuardEntries), result);
++      PyErr_Clear();
++    }
++    return 0;
++  }
++  replaceInvariantStateItem(state, kUdfValueLastResult, result);
++  return 1;
++}
++
++PyObject* JITRT_UdfValueCacheResult(PyObject* state) {
++  JIT_DCHECK(
++      PyList_CheckExact(state) &&
++          PyList_GET_SIZE(state) == kUdfValueStateSize &&
++          PyList_GET_ITEM(state, kUdfValueDisabled) != Py_True,
++      "invalid compiler-created UDF value-cache hit");
++  PyObject* result = PyList_GET_ITEM(state, kUdfValueLastResult);
++  Py_INCREF(result);
++  return result;
++}
++
++void JITRT_UdfValueCacheUpdate3(
++    PyObject* state,
++    PyObject* argument0,
++    PyObject* argument1,
++    PyObject* argument2,
++    PyObject* result) {
++  JIT_DCHECK(
++      PyList_CheckExact(state) && PyList_GET_SIZE(state) == kUdfValueStateSize,
++      "invalid compiler-created UDF value-cache state");
++  if (PyList_GET_ITEM(state, kUdfValueDisabled) == Py_True ||
++      !udfValueCallShapeMatches(state, argument0, argument1, argument2) ||
++      !PyUnicode_CheckExact(result)) {
++    return;
++  }
++  if (PyList_GET_ITEM(state, kUdfValueSnapshotsValid) != Py_True) {
++    if (!snapshotUdfValueDependencies(state)) {
++      disableUdfValueCache(state);
++      return;
++    }
++  } else if (!udfValueDependenciesMatch(state)) {
++    disableUdfValueCache(state);
++    return;
++  }
++
++  PyObject* entries = PyList_GET_ITEM(state, kUdfValueEntries);
++  PyObject* existing = PyDict_GetItemWithError(entries, argument0);
++  if (existing == nullptr && PyErr_Occurred()) {
++    PyErr_Clear();
++    disableUdfValueCache(state);
++    return;
++  }
++  Py_ssize_t capacity =
++      PyLong_AsSsize_t(PyList_GET_ITEM(state, kUdfValueCapacity));
++  if (capacity <= 0 ||
++      (existing == nullptr && PyDict_GET_SIZE(entries) >= capacity)) {
++    PyErr_Clear();
++    return;
++  }
++  if (PyDict_SetItem(entries, argument0, result) < 0) {
++    PyErr_Clear();
++    disableUdfValueCache(state);
++  }
++}
++
++namespace {
++
+ bool isValidUnicodeProperty(int64_t property) {
+   return property >= kUnicodePropertyMin && property <= kUnicodePropertyMax;
+ }
+diff --git a/cinderx/Jit/jit_rt.h b/cinderx/Jit/jit_rt.h
+index 517d8b3d..bcdd6718 100644
+--- a/cinderx/Jit/jit_rt.h
++++ b/cinderx/Jit/jit_rt.h
+@@ -84,6 +84,56 @@ void JITRT_StoreUdfDataI64Unchecked(PyObject* capsule, int64_t value);
+ void JITRT_StoreUdfDataF32Unchecked(PyObject* capsule, double value);
+ void JITRT_StoreUdfDataF64Unchecked(PyObject* capsule, double value);
+ void JITRT_StoreUdfDataNullUnchecked(PyObject* capsule);
++
++// A compiler-created exact list is the GC-visible owner for a guarded
++// invariant cache.  Lookup returns a primitive hit flag; Result returns a new
++// reference and is only emitted on the hit edge.  Update cannot fail: all
++// storage is allocated while building HIR and it only replaces existing list
++// entries.
++constexpr Py_ssize_t kUdfInvariantWatchers = 0;
++constexpr Py_ssize_t kUdfInvariantSnapshots = 1;
++constexpr Py_ssize_t kUdfInvariantArgument0 = 2;
++constexpr Py_ssize_t kUdfInvariantResult = 3;
++constexpr Py_ssize_t kUdfInvariantValid = 4;
++constexpr Py_ssize_t kUdfInvariantMissing = 5;
++constexpr Py_ssize_t kUdfInvariantStateSize = 6;
++int64_t JITRT_UdfInvariantCacheLookup1(PyObject* state, PyObject* argument0);
++PyObject* JITRT_UdfInvariantCacheResult(PyObject* state);
++void JITRT_UdfInvariantCacheUpdate1(
++    PyObject* state,
++    PyObject* argument0,
++    PyObject* result);
++
++// A bounded value cache for an exact Unicode row input.  The initial generic
++// call shape supports one positional input, one identity-checked keyword-only
++// default, and an empty **kwargs dict.  Any other call shape executes the
++// ordinary HIR.  Dependency mutation permanently disables the cache so values
++// compiled under one process-state context are never retargeted to another.
++constexpr Py_ssize_t kUdfValueWatchers = 0;
++constexpr Py_ssize_t kUdfValueSnapshots = 1;
++constexpr Py_ssize_t kUdfValueExpectedArguments = 2;
++constexpr Py_ssize_t kUdfValueEntries = 3;
++constexpr Py_ssize_t kUdfValueLastResult = 4;
++constexpr Py_ssize_t kUdfValueSnapshotsValid = 5;
++constexpr Py_ssize_t kUdfValueDisabled = 6;
++constexpr Py_ssize_t kUdfValueMissing = 7;
++constexpr Py_ssize_t kUdfValueCapacity = 8;
++constexpr Py_ssize_t kUdfValueEntryGuard = 9;
++constexpr Py_ssize_t kUdfValueEntryGuardEntries = 10;
++constexpr Py_ssize_t kUdfValueStateSize = 11;
++int64_t JITRT_UdfValueCacheLookup3(
++    PyObject* state,
++    PyObject* argument0,
++    PyObject* argument1,
++    PyObject* argument2);
++PyObject* JITRT_UdfValueCacheResult(PyObject* state);
++void JITRT_UdfValueCacheUpdate3(
++    PyObject* state,
++    PyObject* argument0,
++    PyObject* argument1,
++    PyObject* argument2,
++    PyObject* result);
++
+ // Generic typed-HIR scalar operations.  None of these functions owns a loop;
+ // the loop and its control/data flow remain visible in HIR and LIR.
+ void* JITRT_UnicodeData(PyObject* text);
+diff --git a/cinderx/PythonLib/test_cinderx/test_udf_invariant_cache.py b/cinderx/PythonLib/test_cinderx/test_udf_invariant_cache.py
+new file mode 100644
+index 00000000..e857a4b6
+--- /dev/null
++++ b/cinderx/PythonLib/test_cinderx/test_udf_invariant_cache.py
+@@ -0,0 +1,369 @@
++# Copyright (c) Meta Platforms, Inc. and affiliates.
++
++import json
++import unittest
++
++import cinderx.jit as jit
++
++
++_RESOLVE_STATE = {"calls": 0, "root": "first"}
++_READ_STATE = {"calls": 0, "value": "present"}
++_FAIL_STATE = {"calls": 0, "fail": True}
++_DEPENDENCY_STATE = {"calls": 0, "value": "stable"}
++_VALUE_STATE = {"calls": 0, "dependency": "first", "fail": False}
++_VALUE_CALL_STATE = {"dependency": "first"}
++_GUARDED_VALUE_STATE = {"calls": 0, "marker": "stable", "present": False}
++
++
++class _DependencyMarker:
++    token = object()
++
++
++def _dependency_version_one():
++    return 1
++
++
++def _dependency_version_two():
++    return 2
++
++
++def _resolve(explicit):
++    _RESOLVE_STATE["calls"] += 1
++    return explicit if explicit is not None else _RESOLVE_STATE["root"]
++
++
++def _read(_token):
++    _READ_STATE["calls"] += 1
++    return _READ_STATE.get("value", "missing")
++
++
++def _maybe_fail(_token):
++    _FAIL_STATE["calls"] += 1
++    if _FAIL_STATE["fail"]:
++        raise RuntimeError("expected")
++    return "ok"
++
++
++def _identity(value):
++    return value
++
++
++def _read_dependency(_token):
++    _DEPENDENCY_STATE["calls"] += 1
++    return _DEPENDENCY_STATE["value"]
++
++
++def _value_target_impl(value, suffix, extra):
++    _VALUE_STATE["calls"] += 1
++    if _VALUE_STATE["fail"]:
++        raise RuntimeError("value-cache-expected")
++    rendered = value + ":" + _VALUE_STATE["dependency"]
++    if suffix is not None:
++        rendered += ":" + suffix
++    if extra:
++        rendered += ":" + str(sorted(extra.items()))
++    return rendered
++
++
++def _value_target_reuse(value, *, suffix=None, **extra):
++    return _value_target_impl(value, suffix, extra)
++
++
++def _value_target_shape(value, *, suffix=None, **extra):
++    return _value_target_impl(value, suffix, extra)
++
++
++def _value_target_dependency(value, *, suffix=None, **extra):
++    return _value_target_impl(value, suffix, extra)
++
++
++def _value_target_exception(value, *, suffix=None, **extra):
++    return _value_target_impl(value, suffix, extra)
++
++
++def _value_dependency_provider(key):
++    return _VALUE_CALL_STATE[key]
++
++
++def _value_target_call_dependency(value, *, suffix=None, **extra):
++    rendered = value + ":" + _value_dependency_provider("dependency")
++    return _value_target_impl(rendered, suffix, extra)
++
++
++def _guarded_value_observer(_key):
++    return _GUARDED_VALUE_STATE["present"]
++
++
++def _guarded_value_target(value, **extra):
++    _GUARDED_VALUE_STATE["calls"] += 1
++    result = {
++        "key": value,
++        "present": _GUARDED_VALUE_STATE["present"],
++    }
++    if extra:
++        result["extra"] = extra
++    return json.dumps(result, sort_keys=True)
++
++
++def _mark_invariant(function, watchers):
++    function.__udfjit_invariant_cache__ = {
++        "version": 1,
++        "argument_modes": ("identity",),
++        "watchers": tuple(("dict_item", mapping, key) for mapping, key in watchers),
++    }
++    return function
++
++
++def _mark_value_cache(function, watchers, *, capacity=16):
++    function.__udfjit_value_cache__ = {
++        "version": 1,
++        "argument_modes": (
++            "exact_unicode_value",
++            "identity",
++            "empty_dict",
++        ),
++        "argument_values": (None,),
++        "capacity": capacity,
++        "result_mode": "exact_unicode",
++        "watchers": tuple(("dict_item", mapping, key) for mapping, key in watchers),
++    }
++    return function
++
++
++@unittest.skipUnless(jit.is_enabled(), "requires CinderX JIT")
++class UdfInvariantCacheTests(unittest.TestCase):
++    def test_value_cache_revalidates_per_entry_external_state(self):
++        _GUARDED_VALUE_STATE.update(calls=0, marker="stable", present=False)
++        _guarded_value_target.__udfjit_value_cache__ = {
++            "version": 1,
++            "argument_modes": ("exact_unicode_value", "empty_dict"),
++            "argument_values": (),
++            "capacity": 16,
++            "entry_guard": (
++                "json_result_call_value",
++                json.loads,
++                ("key",),
++                _guarded_value_observer,
++                ("present",),
++            ),
++            "result_mode": "exact_unicode",
++            "watchers": (("dict_item", _GUARDED_VALUE_STATE, "marker"),),
++        }
++        self.assertTrue(jit.force_compile(_guarded_value_target))
++
++        first = _guarded_value_target("row")
++        self.assertEqual(_guarded_value_target("row"), first)
++        self.assertEqual(_GUARDED_VALUE_STATE["calls"], 1)
++
++        _GUARDED_VALUE_STATE["present"] = True
++        changed = _guarded_value_target("row")
++        self.assertNotEqual(changed, first)
++        self.assertEqual(_guarded_value_target("row"), changed)
++        self.assertEqual(_GUARDED_VALUE_STATE["calls"], 2)
++
++        self.assertIn("extra", _guarded_value_target("row", bypass=True))
++        self.assertEqual(_GUARDED_VALUE_STATE["calls"], 3)
++
++    def test_value_cache_watches_call_result_identity(self):
++        _VALUE_STATE.update(calls=0, dependency="stable", fail=False)
++        _VALUE_CALL_STATE["dependency"] = "first"
++        _value_target_call_dependency.__udfjit_value_cache__ = {
++            "version": 1,
++            "argument_modes": (
++                "exact_unicode_value",
++                "identity",
++                "empty_dict",
++            ),
++            "argument_values": (None,),
++            "capacity": 16,
++            "result_mode": "exact_unicode",
++            "watchers": (
++                (
++                    "call_result_identity",
++                    _value_dependency_provider,
++                    "dependency",
++                ),
++            ),
++        }
++        self.assertTrue(jit.force_compile(_value_target_call_dependency))
++
++        self.assertEqual(
++            _value_target_call_dependency("v"),
++            "v:first:stable",
++        )
++        self.assertEqual(
++            _value_target_call_dependency("v"),
++            "v:first:stable",
++        )
++        _VALUE_CALL_STATE["dependency"] = "second"
++        self.assertEqual(
++            _value_target_call_dependency("v"),
++            "v:second:stable",
++        )
++
++    def test_value_cache_reuses_equal_exact_unicode_inputs(self):
++        _VALUE_STATE.update(calls=0, dependency="first", fail=False)
++        _mark_value_cache(_value_target_reuse, ((_VALUE_STATE, "dependency"),))
++        self.assertTrue(jit.force_compile(_value_target_reuse))
++        counts = jit.get_function_hir_opcode_counts(_value_target_reuse) or {}
++        self.assertGreaterEqual(counts.get("CallStatic", 0), 1, counts)
++
++        first = "same-value-" + "x" * 32
++        equal_but_distinct = (" " + first)[1:]
++        self.assertIsNot(first, equal_but_distinct)
++        self.assertEqual(_value_target_reuse(first), "same-value-" + "x" * 32 + ":first")
++        self.assertEqual(
++            _value_target_reuse(equal_but_distinct),
++            "same-value-" + "x" * 32 + ":first",
++        )
++        self.assertEqual(_VALUE_STATE["calls"], 1)
++
++        self.assertEqual(_value_target_reuse("other"), "other:first")
++        self.assertEqual(_value_target_reuse("other"), "other:first")
++        self.assertEqual(_VALUE_STATE["calls"], 2)
++
++    def test_value_cache_falls_back_for_nondefault_call_shape(self):
++        _VALUE_STATE.update(calls=0, dependency="first", fail=False)
++        _mark_value_cache(_value_target_shape, ((_VALUE_STATE, "dependency"),))
++        self.assertTrue(jit.force_compile(_value_target_shape))
++
++        self.assertEqual(_value_target_shape("v", suffix="s"), "v:first:s")
++        self.assertEqual(_value_target_shape("v", suffix="s"), "v:first:s")
++        self.assertEqual(_value_target_shape("v", marker=1), "v:first:[('marker', 1)]")
++        self.assertEqual(_VALUE_STATE["calls"], 3)
++
++        self.assertEqual(_value_target_shape("v"), "v:first")
++        self.assertEqual(_value_target_shape("v"), "v:first")
++        self.assertEqual(_VALUE_STATE["calls"], 4)
++
++    def test_value_cache_disables_after_dependency_change(self):
++        _VALUE_STATE.update(calls=0, dependency="first", fail=False)
++        _mark_value_cache(_value_target_dependency, ((_VALUE_STATE, "dependency"),))
++        self.assertTrue(jit.force_compile(_value_target_dependency))
++
++        self.assertEqual(_value_target_dependency("v"), "v:first")
++        self.assertEqual(_value_target_dependency("v"), "v:first")
++        self.assertEqual(_VALUE_STATE["calls"], 1)
++
++        _VALUE_STATE["dependency"] = "second"
++        self.assertEqual(_value_target_dependency("v"), "v:second")
++        self.assertEqual(_value_target_dependency("v"), "v:second")
++        self.assertEqual(_VALUE_STATE["calls"], 3)
++
++    def test_value_cache_does_not_cache_exceptions(self):
++        _VALUE_STATE.update(calls=0, dependency="first", fail=True)
++        _mark_value_cache(_value_target_exception, ((_VALUE_STATE, "dependency"),))
++        self.assertTrue(jit.force_compile(_value_target_exception))
++
++        with self.assertRaisesRegex(RuntimeError, "value-cache-expected"):
++            _value_target_exception("v")
++        with self.assertRaisesRegex(RuntimeError, "value-cache-expected"):
++            _value_target_exception("v")
++        self.assertEqual(_VALUE_STATE["calls"], 2)
++
++    def test_reuses_result_until_an_argument_or_watched_value_changes(self):
++        _RESOLVE_STATE.update(calls=0, root="first")
++        _mark_invariant(_resolve, ((_RESOLVE_STATE, "root"),))
++        self.assertTrue(jit.force_compile(_resolve))
++        counts = jit.get_function_hir_opcode_counts(_resolve) or {}
++        self.assertGreaterEqual(counts.get("CallStatic", 0), 1, counts)
++
++        self.assertEqual(_resolve(None), "first")
++        self.assertEqual(_resolve(None), "first")
++        self.assertEqual(_RESOLVE_STATE["calls"], 1)
++
++        _RESOLVE_STATE["root"] = "second"
++        self.assertEqual(_resolve(None), "second")
++        self.assertEqual(_resolve(None), "second")
++        self.assertEqual(_RESOLVE_STATE["calls"], 2)
++
++        self.assertEqual(_resolve("explicit"), "explicit")
++        self.assertEqual(_resolve("explicit"), "explicit")
++        self.assertEqual(_RESOLVE_STATE["calls"], 3)
++
++    def test_missing_and_reinserted_watched_key_invalidate(self):
++        _READ_STATE.update(calls=0, value="present")
++        _mark_invariant(_read, ((_READ_STATE, "value"),))
++        self.assertTrue(jit.force_compile(_read))
++
++        self.assertEqual(_read(None), "present")
++        self.assertEqual(_read(None), "present")
++        del _READ_STATE["value"]
++        self.assertEqual(_read(None), "missing")
++        self.assertEqual(_read(None), "missing")
++        _READ_STATE["value"] = "again"
++        self.assertEqual(_read(None), "again")
++        self.assertEqual(_READ_STATE["calls"], 3)
++
++    def test_exceptions_are_not_cached(self):
++        _FAIL_STATE.update(calls=0, fail=True)
++        _mark_invariant(_maybe_fail, ((_FAIL_STATE, "fail"),))
++        self.assertTrue(jit.force_compile(_maybe_fail))
++
++        with self.assertRaisesRegex(RuntimeError, "expected"):
++            _maybe_fail(None)
++        with self.assertRaisesRegex(RuntimeError, "expected"):
++            _maybe_fail(None)
++        self.assertEqual(_FAIL_STATE["calls"], 2)
++
++        _FAIL_STATE["fail"] = False
++        self.assertEqual(_maybe_fail(None), "ok")
++        self.assertEqual(_maybe_fail(None), "ok")
++        self.assertEqual(_FAIL_STATE["calls"], 3)
++
++    def test_malformed_descriptor_fails_closed(self):
++        _identity.__udfjit_invariant_cache__ = {
++            "version": 1,
++            "argument_modes": ("equality",),
++            "watchers": (),
++        }
++        self.assertTrue(jit.force_compile(_identity))
++        self.assertEqual(_identity("value"), "value")
++        counts = jit.get_function_hir_opcode_counts(_identity) or {}
++        self.assertEqual(counts.get("CallStatic", 0), 0, counts)
++
++    def test_type_attribute_and_function_code_changes_invalidate(self):
++        _DEPENDENCY_STATE.update(calls=0, value="stable")
++        original_code = _dependency_version_one.__code__
++        _read_dependency.__udfjit_invariant_cache__ = {
++            "version": 1,
++            "argument_modes": ("identity",),
++            "watchers": (
++                ("dict_item", _DEPENDENCY_STATE, "value"),
++                ("type_attr", _DependencyMarker, "token"),
++                ("function_code", _dependency_version_one, "__code__"),
++            ),
++        }
++        try:
++            self.assertTrue(jit.force_compile(_read_dependency))
++            self.assertEqual(_read_dependency(None), "stable")
++            self.assertEqual(_read_dependency(None), "stable")
++            self.assertEqual(_DEPENDENCY_STATE["calls"], 1)
++
++            _DependencyMarker.token = object()
++            self.assertEqual(_read_dependency(None), "stable")
++            self.assertEqual(_read_dependency(None), "stable")
++            self.assertEqual(_DEPENDENCY_STATE["calls"], 2)
++
++            _dependency_version_one.__code__ = _dependency_version_two.__code__
++            self.assertEqual(_read_dependency(None), "stable")
++            self.assertEqual(_read_dependency(None), "stable")
++            self.assertEqual(_DEPENDENCY_STATE["calls"], 3)
++        finally:
++            _dependency_version_one.__code__ = original_code
++
++    def test_closure_descriptor_fails_closed(self):
++        state = {"value": "first"}
++
++        def read(_token):
++            return state["value"]
++
++        _mark_invariant(read, ((state, "value"),))
++        self.assertTrue(jit.force_compile(read))
++        self.assertEqual(read(None), "first")
++        counts = jit.get_function_hir_opcode_counts(read) or {}
++        self.assertEqual(counts.get("CallStatic", 0), 0, counts)
++
++
++if __name__ == "__main__":
++    unittest.main()

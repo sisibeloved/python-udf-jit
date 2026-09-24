@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "upstream_commit": "ac09c68527153b43cc8b4f16f36d9245cb861d12",
+  "patches": [
+    {
+      "path": "0001-udf-continuation-dataflow.patch",
+      "sha256": "929dba943819fa79fa1d18a9d0249ecd3ba30f278f45e12b8841a0e56b34e42a",
+      "changed_file_count": 35
+    },
+    {
+      "path": "0002-typed-udf-regions-generic-hir.patch",
+      "sha256": "7c7d1fb3b6f86957e601860a8445d4a3937ff4216bd6da08ba8bc7634d12b40d",
+      "changed_file_count": 47
+    },
+    {
+      "path": "0003-osr-test-cleanup.patch",
+      "sha256": "5b4b279798d2de3ae3aecb03a65aa0d800e0aba5b90af418af480e68394507bc",
+      "changed_file_count": 1
+    },
+    {
+      "path": "0004-guarded-exact-value-reuse.patch",
+      "sha256": "139e405e40204ad1761c197b1d839364e8ce5f65dd4f8eb6ba5ec0abd0122dac",
+      "changed_file_count": 4
+    },
+    {
+      "path": "0005-udf-cache-descriptor-nullcheck.patch",
+      "sha256": "af456b4299d068a09145ac052b3cceca56153bf35cd1848e888d59809823ba96",
+      "changed_file_count": 1
+    },
+    {
+      "path": "0006-udf-transient-closure-compile-reuse.patch",
+      "sha256": "5ae52fd79eb4de859e290835972bedd46e81d82fe080a96edc2e0c2f2392b586",
+      "changed_file_count": 3
+    },
+    {
+      "path": "0007-udf-closure-spec-compile-budget.patch",
+      "sha256": "31557668a4f091c213082583d23866535d2cbd618507d380e68f6fd41b77a9c9",
+      "changed_file_count": 3
+    }
+  ],
+  "patch_series_sha256": "342a369a6140c730367a3c9687f420de5232671bb96802ffe04b7f0282dfa33a",
+  "changed_file_count": 58
+}

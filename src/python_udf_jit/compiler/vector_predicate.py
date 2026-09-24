@@ -139,6 +139,36 @@ class RegexSubstitutionPlan:
         )
 
 
+@dataclass(frozen=True)
+class JoinTranslationPlan:
+    r"""Exact ``"".join(c if c not in SET else " " for c in text)`` semantics.
+
+    ``SET`` must resolve to a constant frozenset of single characters: either
+    a module-level name, or a zero-argument ``functools.lru_cache`` provider.
+    The optional ``text = s.strip()`` prefix lowers to a strip *before* the
+    per-character replacement, preserving boundary behavior for set members
+    that are not whitespace. Replacement never collapses runs.
+    """
+
+    function: types.FunctionType
+    code: types.CodeType
+    globals_dict: dict[str, object]
+    set_name: str
+    set_source: object
+    codepoints: tuple[int, ...]
+    arrow_pattern: str
+    strip_input: bool
+
+    kind = "join_translate"
+
+    def matches(self) -> bool:
+        return (
+            self.function.__code__ is self.code
+            and self.globals_dict.get(self.set_name, _ABSENT)
+            is self.set_source
+        )
+
+
 _ABSENT = object()
 _RE_PATTERN_TYPE = type(re.compile(""))
 _KNOWN_CROSS_ENGINE_REGEX_SUBSTITUTIONS = {
@@ -509,6 +539,195 @@ def capture_whitespace_normalization(
     )
 
 
+def _single_character_members(value: object) -> frozenset[str]:
+    if type(value) is not frozenset and type(value) is not set:
+        raise VectorPredicateCaptureError("join_translate_set_type_unsupported")
+    members = frozenset(value)
+    if not members or any(
+        type(member) is not str or len(member) != 1 for member in members
+    ):
+        raise VectorPredicateCaptureError("join_translate_set_member_invalid")
+    return members
+
+
+def capture_join_translation(
+    function: types.FunctionType,
+) -> JoinTranslationPlan:
+    """Capture a per-character membership translate inside ``str.join``.
+
+    Recognizes ``"".join(c if c not in SET else " " for c in text)`` where
+    ``text`` is the input or its argument-free ``strip()``. The membership
+    direction may be mirrored. ``SET`` is proven constant by resolving it to
+    a module-level frozenset/set, or to a zero-argument provider guarded by
+    ``functools.lru_cache`` whose evaluation yields single characters.
+    """
+
+    if type(function) is not types.FunctionType:
+        raise VectorPredicateCaptureError("function_required")
+    node, _first_line = _function_node(function)
+    statements = _statements(node)
+    input_name = _input_name(node)
+    if not 1 <= len(statements) <= 3 or not isinstance(
+        statements[-1], ast.Return
+    ):
+        raise VectorPredicateCaptureError("join_translate_shape_unsupported")
+    strip_input = False
+    iter_name = input_name
+    set_binding: tuple[str, ast.expr] | None = None
+    for statement in statements[:-1]:
+        if (
+            not isinstance(statement, ast.Assign)
+            or len(statement.targets) != 1
+            or not isinstance(statement.targets[0], ast.Name)
+        ):
+            raise VectorPredicateCaptureError("join_translate_statement_unsupported")
+        target = statement.targets[0].id
+        value = statement.value
+        if (
+            isinstance(value, ast.Call)
+            and not value.args
+            and not value.keywords
+            and isinstance(value.func, ast.Attribute)
+            and value.func.attr == "strip"
+            and isinstance(value.func.value, ast.Name)
+            and value.func.value.id == input_name
+        ):
+            if strip_input or target == input_name:
+                raise VectorPredicateCaptureError("join_translate_strip_unsupported")
+            strip_input = True
+            iter_name = target
+            continue
+        if set_binding is not None or target == input_name or target == iter_name:
+            raise VectorPredicateCaptureError("join_translate_binding_unsupported")
+        set_binding = (target, value)
+    set_local: str | None = None
+    set_expr: ast.expr | None = None
+    if set_binding is not None:
+        set_local, set_expr = set_binding
+
+    join_call = statements[-1].value
+    if (
+        not isinstance(join_call, ast.Call)
+        or len(join_call.args) != 1
+        or join_call.keywords
+        or not isinstance(join_call.func, ast.Attribute)
+        or join_call.func.attr != "join"
+        or not isinstance(join_call.func.value, ast.Constant)
+        or join_call.func.value.value != ""
+    ):
+        raise VectorPredicateCaptureError("join_translate_join_unsupported")
+    generator = join_call.args[0]
+    if not isinstance(generator, ast.GeneratorExp) or len(generator.generators) != 1:
+        raise VectorPredicateCaptureError("join_translate_generator_unsupported")
+    comprehension = generator.generators[0]
+    if (
+        comprehension.ifs
+        or not isinstance(comprehension.target, ast.Name)
+        or not isinstance(comprehension.iter, ast.Name)
+        or comprehension.iter.id != iter_name
+    ):
+        raise VectorPredicateCaptureError("join_translate_generator_shape_unsupported")
+    element_name = comprehension.target.id
+
+    def _is_element(expression: ast.expr) -> bool:
+        return isinstance(expression, ast.Name) and expression.id == element_name
+
+    def _is_space(expression: ast.expr) -> bool:
+        return (
+            isinstance(expression, ast.Constant)
+            and type(expression.value) is str
+            and expression.value == " "
+        )
+
+    def _membership(test: ast.expr, operator: type[ast.cmpop]) -> str | None:
+        if (
+            isinstance(test, ast.Compare)
+            and len(test.ops) == 1
+            and isinstance(test.ops[0], operator)
+            and len(test.comparators) == 1
+            and isinstance(test.comparators[0], ast.Name)
+            and isinstance(test.left, ast.Name)
+            and test.left.id == element_name
+        ):
+            return test.comparators[0].id
+        return None
+
+    conditional = generator.elt
+    if not isinstance(conditional, ast.IfExp):
+        raise VectorPredicateCaptureError("join_translate_element_unsupported")
+    kept_set = _membership(conditional.test, ast.NotIn)
+    swapped_set = _membership(conditional.test, ast.In)
+    if kept_set is not None and _is_element(conditional.body) and _is_space(
+        conditional.orelse
+    ):
+        set_reference = kept_set
+    elif swapped_set is not None and _is_space(
+        conditional.body
+    ) and _is_element(conditional.orelse):
+        set_reference = swapped_set
+    else:
+        raise VectorPredicateCaptureError("join_translate_element_shape_unsupported")
+    if set_reference in {input_name, iter_name, element_name}:
+        raise VectorPredicateCaptureError("join_translate_set_reference_invalid")
+    if set_local is not None and set_reference != set_local:
+        raise VectorPredicateCaptureError("join_translate_set_reference_invalid")
+
+    globals_dict = function.__globals__
+    if set_expr is None:
+        set_name = set_reference
+        set_source = globals_dict.get(set_name, _ABSENT)
+        if set_source is _ABSENT:
+            raise VectorPredicateCaptureError("join_translate_set_unresolved")
+        members = _single_character_members(set_source)
+    elif isinstance(set_expr, ast.Name):
+        set_name = set_expr.id
+        set_source = globals_dict.get(set_name, _ABSENT)
+        if set_source is _ABSENT:
+            raise VectorPredicateCaptureError("join_translate_set_unresolved")
+        members = _single_character_members(set_source)
+    elif (
+        isinstance(set_expr, ast.Call)
+        and not set_expr.args
+        and not set_expr.keywords
+        and isinstance(set_expr.func, ast.Name)
+    ):
+        set_name = set_expr.func.id
+        set_source = globals_dict.get(set_name, _ABSENT)
+        # Only a memoized zero-argument provider may be evaluated during
+        # capture; any other callable is rejected without running it.
+        if (
+            set_source is _ABSENT
+            or not callable(set_source)
+            or not callable(getattr(set_source, "cache_info", None))
+            or not hasattr(set_source, "__wrapped__")
+        ):
+            raise VectorPredicateCaptureError("join_translate_set_provider_unsupported")
+        try:
+            members = _single_character_members(set_source())
+        except VectorPredicateCaptureError:
+            raise
+        except Exception as error:
+            raise VectorPredicateCaptureError(
+                "join_translate_set_evaluation_failed"
+            ) from error
+    else:
+        raise VectorPredicateCaptureError("join_translate_set_source_unsupported")
+    codepoints = tuple(sorted(ord(member) for member in members))
+    arrow_pattern = (
+        "[" + "".join(f"\\x{{{value:X}}}" for value in codepoints) + "]"
+    )
+    return JoinTranslationPlan(
+        function=function,
+        code=function.__code__,
+        globals_dict=globals_dict,
+        set_name=set_name,
+        set_source=set_source,
+        codepoints=codepoints,
+        arrow_pattern=arrow_pattern,
+        strip_input=strip_input,
+    )
+
+
 def _cross_engine_regex_safe(pattern: str) -> bool:
     """Accept a deliberately small Python-re/RE2 common language subset."""
 
@@ -626,11 +845,17 @@ def capture_regex_substitution(
 
 def capture_string_transform(
     function: types.FunctionType,
-) -> StringTranslationPlan | WhitespaceNormalizationPlan | RegexSubstitutionPlan:
+) -> (
+    StringTranslationPlan
+    | WhitespaceNormalizationPlan
+    | JoinTranslationPlan
+    | RegexSubstitutionPlan
+):
     errors: list[VectorPredicateCaptureError] = []
     for capture in (
         capture_string_translation,
         capture_whitespace_normalization,
+        capture_join_translation,
         capture_regex_substitution,
     ):
         try:
