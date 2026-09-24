@@ -1,0 +1,17 @@
+{
+  "workload": "FineWeb 200K, real-KenLM language filter",
+  "protocol": "ABBA x2 per arm; each ratio uses its paired same-block R baseline; R/T baselines from rc round, N/ALL candidates from join-translate round (same realc runtime)",
+  "arms_s": {
+    "R_typed": 371.973,
+    "T": 336.718,
+    "R_native": 373.658,
+    "N": 238.386,
+    "R_combined": 373.042,
+    "ALL": 203.625
+  },
+  "ratios": {
+    "R_to_T": 1.1047,
+    "R_to_N": 1.5674,
+    "R_to_ALL": 1.832
+  }
+}

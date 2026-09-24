@@ -1,0 +1,1064 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-07",
+  "new_benchmark_runs": false,
+  "inspected_head": "f67ff8309da2b752c13cfb5c35e3508ae5d19dad",
+  "latest_measured_revision": "dcd38360b025fb67a816b264643beeac2777f778",
+  "current_src_tests_equal_latest_measured_revision": true,
+  "source_files": {
+    "docs/reports/evidence/2026-08-04-generic-sequence-patterns-ab.json": {
+      "sha256": "7bd8251f7231908d54b295ed521d84cedd49c3f89b0eb786fa79e37b9592ff6a",
+      "size_bytes": 7809
+    },
+    ".context/compound-engineering/ce-optimize/columnar-batch-piercing/iteration-19-formal-summary.json": {
+      "sha256": "7996191f7c6d720cfb6b3f1dec4eea118081d8a0f8780644c51a07115922f0ee",
+      "size_bytes": 15594
+    },
+    ".context/compound-engineering/ce-optimize/columnar-batch-piercing/iteration-19-semantic-output-summary.json": {
+      "sha256": "139e9722ea11cae2b170f105f021f1dd89671b67a4fbc7cc7452343d9580f4f3",
+      "size_bytes": 2061
+    },
+    "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json": {
+      "sha256": "ea3539bc614585dcde898e5f819f35280db25e6c8f3117a0e1a63320eb21e675",
+      "size_bytes": 115115
+    },
+    ".context/compound-engineering/ce-optimize/columnar-batch-piercing/experiment-log.yaml": {
+      "sha256": "ac629d0e48c0c9d065d8c5b4aa99646c091e0013e7e0e73d322ec832681f0133",
+      "size_bytes": 55339
+    }
+  },
+  "environment_evidence": {
+    "typed": {
+      "host": "aarch64-lab-host",
+      "arch": "aarch64",
+      "python": "3.14.3",
+      "build_image": "python-udf-jit:u13-20260729-071503-eb97ee8a",
+      "pipeline_image": "python-udf-jit-volc:u13-46f8c726",
+      "cpu_affinity": "4-7",
+      "ray_num_cpus": 4,
+      "thread_limits": {
+        "OMP_NUM_THREADS": 1,
+        "OPENBLAS_NUM_THREADS": 1,
+        "MKL_NUM_THREADS": 1,
+        "NUMEXPR_NUM_THREADS": 1,
+        "VECLIB_MAXIMUM_THREADS": 1
+      }
+    },
+    "columnar": {
+      "source_tree_sha256": "9234199933a0bda641d29505701f630b922282c6f5d8d7b5406b40687e281d76",
+      "operator_runtime_sha256": "402d584351f911d67b1106164fc3cbd335f3c91d29a0200bfefd4935da7c3057",
+      "image_ids": {
+        "ad": "sha256:9a08afb30b00a264d1a41d8c6e2a5721b000cdff29603b1fcd4061a8f0fe6308",
+        "audio": "sha256:2890b4202ef480e23b18c8bed82bb7e4d597aa4753a3fcccc562119d7c310780",
+        "fineweb": "sha256:9a08afb30b00a264d1a41d8c6e2a5721b000cdff29603b1fcd4061a8f0fe6308",
+        "image": "sha256:2890b4202ef480e23b18c8bed82bb7e4d597aa4753a3fcccc562119d7c310780",
+        "pdf": "sha256:f27a67a8ebb356b019297485c8d936bff0bb16f902c1538aa7c4c8a0b242c765",
+        "video": "sha256:2890b4202ef480e23b18c8bed82bb7e4d597aa4753a3fcccc562119d7c310780"
+      },
+      "host": "blue-53",
+      "cpu_affinity": "32,34,36,38",
+      "python": "3.14.3"
+    },
+    "latest_native_expression": {
+      "source_snapshots": [
+        {
+          "sha256": "fe7ff771a43cbd3f539c18d36232b1b2d08f0e7397bf25ef76e49bd75d2a6545",
+          "size_bytes": 12253
+        },
+        {
+          "sha256": "b32a6a14c927e75590806e6635acef52b3f86f13e96ab82cb973b0717a14366b",
+          "size_bytes": 456
+        }
+      ],
+      "architecture": "aarch64",
+      "python": "3.14.3",
+      "container": "fineweb-three-lowerings-20260826",
+      "image": "volc-operator-sim-machine-code:p3-python314-arm54-dj152-s1-20260822",
+      "image_id": "sha256:62f9bad3d05d5fd69df59ae2dd939e5ef61d5249a4707f288e00bcbfbe54629b",
+      "cpu_affinity": [
+        32,
+        34,
+        36,
+        38
+      ],
+      "numa_node": 0,
+      "ray_num_cpus": 4,
+      "dj_np": 4,
+      "materialize_policy": "end",
+      "timing_tier": "p0",
+      "include_write_lance_in_elapsed": true,
+      "fuse_mappers": false,
+      "diagnostics": "off",
+      "serial_execution": true,
+      "cluster_epoch": "blue54-fineweb-three-lowerings-20260826",
+      "thread_limits": {
+        "OMP_NUM_THREADS": 1,
+        "MKL_NUM_THREADS": 1,
+        "OPENBLAS_NUM_THREADS": 1,
+        "NUMEXPR_NUM_THREADS": 1,
+        "VECLIB_MAXIMUM_THREADS": 1
+      },
+      "python_hash_seed": 0,
+      "cinderx_lightweight_frame": true,
+      "cinderx_hir_inliner": true
+    },
+    "latest_source": {
+      "repository": "python-udf-jit",
+      "branch": "wkf/perf-fineweb-three-lowerings",
+      "base_revision": "606ccc8b9395cd605f089b15080323d79d1cf41a",
+      "measured_revision": "dcd38360b025fb67a816b264643beeac2777f778",
+      "all_arms_same_measured_revision": true,
+      "cinderx_revision": "7214f89d92a3b21c79546a34e14f48e1e895739f",
+      "volc_revision": "17b2e6023a440843e5be6cf83d0c156819fa0cf4",
+      "epoch_source_fix_included": false,
+      "source_snapshots": [
+        {
+          "sha256": "33240dc6ba8015e521a0fc983a9ebf5e641cfb5be6fc2eb76622fb8fa031a820",
+          "size_bytes": 652
+        },
+        {
+          "sha256": "fe7ff771a43cbd3f539c18d36232b1b2d08f0e7397bf25ef76e49bd75d2a6545",
+          "size_bytes": 12253
+        }
+      ]
+    }
+  },
+  "recomputed_comparisons": [
+    {
+      "id": "typed-kernel-alphanumeric",
+      "route": "1",
+      "scope": "ordinary CinderX JIT -> typed generic HIR",
+      "measurement_date": "2026-08-04",
+      "metric": "kernel_wall_s",
+      "aggregation": "median",
+      "source": "docs/reports/evidence/2026-08-04-generic-sequence-patterns-ab.json",
+      "baseline_samples_s": [
+        0.47436427,
+        0.47472988,
+        0.47599207,
+        0.47684759,
+        0.4758987,
+        0.47463889,
+        0.47438288
+      ],
+      "candidate_samples_s": [
+        0.04329225,
+        0.04317343,
+        0.04308948,
+        0.0432099,
+        0.04300235,
+        0.04312861,
+        0.04308611
+      ],
+      "baseline_s": 0.47472988,
+      "candidate_s": 0.04312861,
+      "speedup": 11.007307678128278,
+      "time_reduction_percent": 90.91512630298307,
+      "confidence_interval": null
+    },
+    {
+      "id": "typed-kernel-punctuation",
+      "route": "1",
+      "scope": "ordinary CinderX JIT -> typed generic HIR",
+      "measurement_date": "2026-08-04",
+      "metric": "kernel_wall_s",
+      "aggregation": "median",
+      "source": "docs/reports/evidence/2026-08-04-generic-sequence-patterns-ab.json",
+      "baseline_samples_s": [
+        0.13242081,
+        0.13246304,
+        0.13273864,
+        0.13293875,
+        0.13264314,
+        0.13318711,
+        0.13284345
+      ],
+      "candidate_samples_s": [
+        0.04273092,
+        0.0426954,
+        0.04269421,
+        0.04269014,
+        0.04270873,
+        0.04270839,
+        0.04269343
+      ],
+      "baseline_s": 0.13273864,
+      "candidate_s": 0.0426954,
+      "speedup": 3.1089681792417916,
+      "time_reduction_percent": 67.83498761174592,
+      "confidence_interval": null
+    },
+    {
+      "id": "typed-kernel-whitespace",
+      "route": "1",
+      "scope": "ordinary CinderX JIT -> typed generic HIR",
+      "measurement_date": "2026-08-04",
+      "metric": "kernel_wall_s",
+      "aggregation": "median",
+      "source": "docs/reports/evidence/2026-08-04-generic-sequence-patterns-ab.json",
+      "baseline_samples_s": [
+        0.23395519,
+        0.23387325,
+        0.23397002,
+        0.23373453,
+        0.23374484,
+        0.23351767,
+        0.233539
+      ],
+      "candidate_samples_s": [
+        0.09477427,
+        0.09452758,
+        0.09450674,
+        0.0945118,
+        0.09450305,
+        0.09448415,
+        0.09450582
+      ],
+      "baseline_s": 0.23374484,
+      "candidate_s": 0.09450674,
+      "speedup": 2.473313966813372,
+      "time_reduction_percent": 59.56841656911014,
+      "confidence_interval": null
+    },
+    {
+      "id": "typed-fineweb-200k",
+      "route": "1",
+      "scope": "historical MODE=off -> auto; native expression/batch paths not introduced yet",
+      "measurement_date": "2026-08-04",
+      "metric": "pipeline_execute_s",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-04-generic-sequence-patterns-ab.json",
+      "baseline_samples_s": [
+        522.088468
+      ],
+      "candidate_samples_s": [
+        426.246999
+      ],
+      "baseline_s": 522.088468,
+      "candidate_s": 426.246999,
+      "speedup": 1.2248496041610841,
+      "time_reduction_percent": 18.357323494837274,
+      "confidence_interval": null
+    },
+    {
+      "id": "columnar-v3-ad",
+      "route": "3",
+      "scope": "MODE=auto fixed; COLUMNAR=0 -> 1; workload-specific attribution",
+      "measurement_date": "2026-08-14",
+      "metric": "pipeline_execute_s",
+      "aggregation": "mean",
+      "source": ".context/compound-engineering/ce-optimize/columnar-batch-piercing/iteration-19-formal-summary.json",
+      "baseline_samples_s": [
+        198.2919,
+        196.140498
+      ],
+      "candidate_samples_s": [
+        123.98881,
+        125.074661
+      ],
+      "baseline_s": 197.21619900000002,
+      "candidate_s": 124.5317355,
+      "speedup": 1.5836621742094008,
+      "time_reduction_percent": 36.855219737806635,
+      "confidence_interval": null
+    },
+    {
+      "id": "columnar-v3-audio",
+      "route": "control",
+      "scope": "MODE=auto fixed; COLUMNAR=0 -> 1; workload-specific attribution",
+      "measurement_date": "2026-08-14",
+      "metric": "pipeline_execute_s",
+      "aggregation": "mean",
+      "source": ".context/compound-engineering/ce-optimize/columnar-batch-piercing/iteration-19-formal-summary.json",
+      "baseline_samples_s": [
+        304.622574,
+        304.384317
+      ],
+      "candidate_samples_s": [
+        304.943346,
+        304.469296
+      ],
+      "baseline_s": 304.5034455,
+      "candidate_s": 304.706321,
+      "speedup": 0.9993341933329962,
+      "time_reduction_percent": -0.06662502608694165,
+      "confidence_interval": null
+    },
+    {
+      "id": "columnar-v3-fineweb",
+      "route": "2",
+      "scope": "MODE=auto fixed; COLUMNAR=0 -> 1; workload-specific attribution",
+      "measurement_date": "2026-08-14",
+      "metric": "pipeline_execute_s",
+      "aggregation": "mean",
+      "source": ".context/compound-engineering/ce-optimize/columnar-batch-piercing/iteration-19-formal-summary.json",
+      "baseline_samples_s": [
+        302.800893,
+        303.85476
+      ],
+      "candidate_samples_s": [
+        283.009345,
+        284.319049
+      ],
+      "baseline_s": 303.3278265,
+      "candidate_s": 283.664197,
+      "speedup": 1.0693200964660339,
+      "time_reduction_percent": 6.482632908062591,
+      "confidence_interval": null
+    },
+    {
+      "id": "columnar-v3-image",
+      "route": "control",
+      "scope": "MODE=auto fixed; COLUMNAR=0 -> 1; workload-specific attribution",
+      "measurement_date": "2026-08-14",
+      "metric": "pipeline_execute_s",
+      "aggregation": "mean",
+      "source": ".context/compound-engineering/ce-optimize/columnar-batch-piercing/iteration-19-formal-summary.json",
+      "baseline_samples_s": [
+        74.027478,
+        74.083598
+      ],
+      "candidate_samples_s": [
+        74.222803,
+        74.083606
+      ],
+      "baseline_s": 74.055538,
+      "candidate_s": 74.1532045,
+      "speedup": 0.9986829092463563,
+      "time_reduction_percent": -0.1318827769504649,
+      "confidence_interval": null
+    },
+    {
+      "id": "columnar-v3-pdf",
+      "route": "control",
+      "scope": "MODE=auto fixed; COLUMNAR=0 -> 1; workload-specific attribution",
+      "measurement_date": "2026-08-14",
+      "metric": "pipeline_execute_s",
+      "aggregation": "mean",
+      "source": ".context/compound-engineering/ce-optimize/columnar-batch-piercing/iteration-19-formal-summary.json",
+      "baseline_samples_s": [
+        503.048136,
+        504.710393
+      ],
+      "candidate_samples_s": [
+        504.766581,
+        504.503144
+      ],
+      "baseline_s": 503.8792645,
+      "candidate_s": 504.6348625,
+      "speedup": 0.998502683710244,
+      "time_reduction_percent": -0.14995616077788654,
+      "confidence_interval": null
+    },
+    {
+      "id": "columnar-v3-video",
+      "route": "control",
+      "scope": "MODE=auto fixed; COLUMNAR=0 -> 1; workload-specific attribution",
+      "measurement_date": "2026-08-14",
+      "metric": "pipeline_execute_s",
+      "aggregation": "mean",
+      "source": ".context/compound-engineering/ce-optimize/columnar-batch-piercing/iteration-19-formal-summary.json",
+      "baseline_samples_s": [
+        94.75811,
+        94.939267
+      ],
+      "candidate_samples_s": [
+        93.815794,
+        92.514255
+      ],
+      "baseline_s": 94.84868850000001,
+      "candidate_s": 93.1650245,
+      "speedup": 1.018071846264582,
+      "time_reduction_percent": 1.7751051982126342,
+      "confidence_interval": null
+    },
+    {
+      "id": "stand-in-20k-AB",
+      "route": "mixed",
+      "scope": "existing_optimization_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        47.433800930157304,
+        47.55942256003618
+      ],
+      "candidate_samples_s": [
+        39.781991719733924,
+        38.86300575034693
+      ],
+      "baseline_s": 47.49661174509674,
+      "candidate_s": 39.322498735040426,
+      "speedup": 1.207873692491783,
+      "time_reduction_percent": 17.209886578699297,
+      "confidence_interval": null
+    },
+    {
+      "id": "stand-in-20k-BC",
+      "route": "2-increment",
+      "scope": "incremental_lowering_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        38.64117148052901,
+        38.601002800278366
+      ],
+      "candidate_samples_s": [
+        35.42695357045159,
+        35.43932486977428
+      ],
+      "baseline_s": 38.62108714040369,
+      "candidate_s": 35.433139220112935,
+      "speedup": 1.0899708010765576,
+      "time_reduction_percent": 8.25442305313996,
+      "confidence_interval": null
+    },
+    {
+      "id": "stand-in-20k-BD",
+      "route": "2-increment",
+      "scope": "incremental_lowering_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        38.67645501997322,
+        38.620734700001776
+      ],
+      "candidate_samples_s": [
+        33.7737928298302,
+        34.01308569032699
+      ],
+      "baseline_s": 38.6485948599875,
+      "candidate_s": 33.893439260078594,
+      "speedup": 1.1402972287179414,
+      "time_reduction_percent": 12.303566577608926,
+      "confidence_interval": null
+    },
+    {
+      "id": "stand-in-20k-BE",
+      "route": "2-increment",
+      "scope": "incremental_lowering_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        38.72059672977775,
+        38.79210647987202
+      ],
+      "candidate_samples_s": [
+        35.061514909844846,
+        34.88669676007703
+      ],
+      "baseline_s": 38.756351604824886,
+      "candidate_s": 34.97410583496094,
+      "speedup": 1.108144173512597,
+      "time_reduction_percent": 9.759034618194262,
+      "confidence_interval": null
+    },
+    {
+      "id": "stand-in-20k-BF",
+      "route": "2-increment",
+      "scope": "incremental_lowering_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        38.505813179537654,
+        38.66377526009455
+      ],
+      "candidate_samples_s": [
+        26.652240759693086,
+        26.770137099549174
+      ],
+      "baseline_s": 38.584794219816104,
+      "candidate_s": 26.71118892962113,
+      "speedup": 1.444518037796058,
+      "time_reduction_percent": 30.772757844842957,
+      "confidence_interval": null
+    },
+    {
+      "id": "stand-in-200k-AB",
+      "route": "mixed",
+      "scope": "existing_optimization_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        398.5006128801033,
+        398.4129156800918
+      ],
+      "candidate_samples_s": [
+        297.3703968101181,
+        293.40200308989733
+      ],
+      "baseline_s": 398.45676428009756,
+      "candidate_s": 295.3861999500077,
+      "speedup": 1.3489349344943464,
+      "time_reduction_percent": 25.867439975905583,
+      "confidence_interval": null
+    },
+    {
+      "id": "stand-in-200k-BC",
+      "route": "2-increment",
+      "scope": "incremental_lowering_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        287.82698100991547,
+        295.66210444038734
+      ],
+      "candidate_samples_s": [
+        246.21793662989512,
+        243.3804135201499
+      ],
+      "baseline_s": 291.7445427251514,
+      "candidate_s": 244.7991750750225,
+      "speedup": 1.1917709389165292,
+      "time_reduction_percent": 16.091258198565683,
+      "confidence_interval": null
+    },
+    {
+      "id": "stand-in-200k-BD",
+      "route": "2-increment",
+      "scope": "incremental_lowering_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        294.0917351595126,
+        292.79946688981727
+      ],
+      "candidate_samples_s": [
+        230.51586590055376,
+        235.22603010991588
+      ],
+      "baseline_s": 293.44560102466494,
+      "candidate_s": 232.87094800523482,
+      "speedup": 1.2601211251910582,
+      "time_reduction_percent": 20.642549354262986,
+      "confidence_interval": null
+    },
+    {
+      "id": "stand-in-200k-BE",
+      "route": "2-increment",
+      "scope": "incremental_lowering_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        293.4242855999619,
+        293.71199308987707
+      ],
+      "candidate_samples_s": [
+        236.71766104968265,
+        238.4742080802098
+      ],
+      "baseline_s": 293.5681393449195,
+      "candidate_s": 237.59593456494622,
+      "speedup": 1.2355772832664922,
+      "time_reduction_percent": 19.066171453370938,
+      "confidence_interval": null
+    },
+    {
+      "id": "stand-in-200k-BG",
+      "route": "2-increment",
+      "scope": "incremental_lowering_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        291.1324022402987,
+        292.588436009828
+      ],
+      "candidate_samples_s": [
+        207.99058063980192,
+        210.34327278006822
+      ],
+      "baseline_s": 291.86041912506334,
+      "candidate_s": 209.16692670993507,
+      "speedup": 1.3953468825872484,
+      "time_reduction_percent": 28.333232941632204,
+      "confidence_interval": null
+    },
+    {
+      "id": "stand-in-200k-BF",
+      "route": "2-increment",
+      "scope": "incremental_lowering_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        293.24750795960426,
+        295.63785549998283
+      ],
+      "candidate_samples_s": [
+        157.20465224981308,
+        156.81138645065948
+      ],
+      "baseline_s": 294.44268172979355,
+      "candidate_s": 157.00801935023628,
+      "speedup": 1.8753353041985905,
+      "time_reduction_percent": 46.676202503032286,
+      "confidence_interval": null
+    },
+    {
+      "id": "real-kenlm-20k-AB",
+      "route": "mixed",
+      "scope": "existing_optimization_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        78.98914245003834,
+        79.05761713022366
+      ],
+      "candidate_samples_s": [
+        69.83687200956047,
+        71.10596451023594
+      ],
+      "baseline_s": 79.023379790131,
+      "candidate_s": 70.4714182598982,
+      "speedup": 1.1213536174154068,
+      "time_reduction_percent": 10.822065005249026,
+      "confidence_interval": null
+    },
+    {
+      "id": "real-kenlm-20k-BC",
+      "route": "2-increment",
+      "scope": "incremental_lowering_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        69.9177992399782,
+        70.85755668999627
+      ],
+      "candidate_samples_s": [
+        67.26870200037956,
+        67.2079639500007
+      ],
+      "baseline_s": 70.38767796498723,
+      "candidate_s": 67.23833297519013,
+      "speedup": 1.0468385346638376,
+      "time_reduction_percent": 4.474284535091034,
+      "confidence_interval": null
+    },
+    {
+      "id": "real-kenlm-20k-BD",
+      "route": "2-increment",
+      "scope": "incremental_lowering_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        70.67089917976409,
+        70.89470604015514
+      ],
+      "candidate_samples_s": [
+        65.52525593014434,
+        66.0609510098584
+      ],
+      "baseline_s": 70.78280260995962,
+      "candidate_s": 65.79310347000137,
+      "speedup": 1.0758392426682428,
+      "time_reduction_percent": 7.049309939666282,
+      "confidence_interval": null
+    },
+    {
+      "id": "real-kenlm-20k-BE",
+      "route": "2-increment",
+      "scope": "incremental_lowering_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        70.50745456013829,
+        70.07361371954903
+      ],
+      "candidate_samples_s": [
+        67.05012570973486,
+        67.10819758009166
+      ],
+      "baseline_s": 70.29053413984366,
+      "candidate_s": 67.07916164491326,
+      "speedup": 1.0478743683758296,
+      "time_reduction_percent": 4.568712607221547,
+      "confidence_interval": null
+    },
+    {
+      "id": "real-kenlm-20k-BF",
+      "route": "2-increment",
+      "scope": "incremental_lowering_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        70.86567923007533,
+        70.45200258027762
+      ],
+      "candidate_samples_s": [
+        58.48509398009628,
+        58.45629059989005
+      ],
+      "baseline_s": 70.65884090517648,
+      "candidate_s": 58.47069228999317,
+      "speedup": 1.208448850831705,
+      "time_reduction_percent": 17.24929033514673,
+      "confidence_interval": null
+    },
+    {
+      "id": "real-kenlm-200k-AB",
+      "route": "mixed",
+      "scope": "existing_optimization_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        708.8444357300177,
+        704.0589604405686
+      ],
+      "candidate_samples_s": [
+        603.0823411899619,
+        596.9423963297158
+      ],
+      "baseline_s": 706.4516980852932,
+      "candidate_s": 600.0123687598389,
+      "speedup": 1.177395225277527,
+      "time_reduction_percent": 15.066752562693031,
+      "confidence_interval": null
+    },
+    {
+      "id": "real-kenlm-200k-BC",
+      "route": "2-increment",
+      "scope": "incremental_lowering_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        596.9470269498415,
+        598.3047354002483
+      ],
+      "candidate_samples_s": [
+        562.6552710803226,
+        567.4593415195122
+      ],
+      "baseline_s": 597.6258811750449,
+      "candidate_s": 565.0573062999174,
+      "speedup": 1.0576376493357666,
+      "time_reduction_percent": 5.449659377383654,
+      "confidence_interval": null
+    },
+    {
+      "id": "real-kenlm-200k-BD",
+      "route": "2-increment",
+      "scope": "incremental_lowering_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        604.8558996799402,
+        605.6489336495288
+      ],
+      "candidate_samples_s": [
+        499.20124656008556,
+        495.65601463010535
+      ],
+      "baseline_s": 605.2524166647345,
+      "candidate_s": 497.42863059509546,
+      "speedup": 1.2167623241562207,
+      "time_reduction_percent": 17.814680801078985,
+      "confidence_interval": null
+    },
+    {
+      "id": "real-kenlm-200k-BE",
+      "route": "2-increment",
+      "scope": "incremental_lowering_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        598.4179393299855,
+        592.2189213605598
+      ],
+      "candidate_samples_s": [
+        553.0644109598361,
+        558.4926045793109
+      ],
+      "baseline_s": 595.3184303452726,
+      "candidate_s": 555.7785077695735,
+      "speedup": 1.0711433098310676,
+      "time_reduction_percent": 6.641810594166686,
+      "confidence_interval": null
+    },
+    {
+      "id": "real-kenlm-200k-BG",
+      "route": "2-increment",
+      "scope": "incremental_lowering_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        600.4305868600495,
+        594.6811690698378
+      ],
+      "candidate_samples_s": [
+        529.7270959005691,
+        523.1341366702691
+      ],
+      "baseline_s": 597.5558779649436,
+      "candidate_s": 526.4306162854191,
+      "speedup": 1.1351085204378806,
+      "time_reduction_percent": 11.902696350632702,
+      "confidence_interval": null
+    },
+    {
+      "id": "real-kenlm-200k-BF",
+      "route": "2-increment",
+      "scope": "incremental_lowering_gain",
+      "measurement_date": "2026-08-26/2026-08-27",
+      "metric": "elapsed_s_including_ray_and_sink",
+      "aggregation": "mean",
+      "source": "docs/reports/evidence/2026-08-27-fineweb-three-lowerings-ab.json",
+      "baseline_samples_s": [
+        607.3949607601389,
+        601.0613739704713
+      ],
+      "candidate_samples_s": [
+        433.1637414493598,
+        436.9853220600635
+      ],
+      "baseline_s": 604.2281673653051,
+      "candidate_s": 435.07453175471164,
+      "speedup": 1.388792317786047,
+      "time_reduction_percent": 27.994993405914215,
+      "confidence_interval": null
+    },
+    {
+      "id": "dictionary-only-ad-5m",
+      "route": "3-increment",
+      "scope": "native batch already on; dictionary off -> on",
+      "measurement_date": "2026-08-13",
+      "metric": "pipeline_execute_s",
+      "aggregation": "median",
+      "source": ".context/compound-engineering/ce-optimize/columnar-batch-piercing/experiment-log.yaml",
+      "baseline_samples_s": [
+        136.871809,
+        144.949682,
+        138.848279,
+        143.592986
+      ],
+      "candidate_samples_s": [
+        129.644465,
+        128.224763,
+        129.134962,
+        129.36341
+      ],
+      "baseline_s": 141.2206325,
+      "candidate_s": 129.249186,
+      "speedup": 1.0926229933858151,
+      "time_reduction_percent": 8.477122845346264,
+      "confidence_interval": null
+    }
+  ],
+  "recomputed_overall_comparisons": [
+    {
+      "id": "stand-in-20k-AB-total",
+      "classification": "same_block_abba",
+      "speedup": 1.207873692491783,
+      "time_reduction_percent": 17.209886578699297,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "stand-in-20k-AC-total",
+      "classification": "cross_block_observation",
+      "speedup": 1.3404573455951714,
+      "time_reduction_percent": 25.398595987700467,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "stand-in-20k-AD-total",
+      "classification": "cross_block_observation",
+      "speedup": 1.401351198992681,
+      "time_reduction_percent": 28.64030082403185,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "stand-in-20k-AE-total",
+      "classification": "cross_block_observation",
+      "speedup": 1.358050781032921,
+      "time_reduction_percent": 26.365051000566485,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "stand-in-20k-AF-total",
+      "classification": "cross_block_observation",
+      "speedup": 1.7781541611734777,
+      "time_reduction_percent": 43.76190648509022,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "stand-in-200k-AB-total",
+      "classification": "same_block_abba",
+      "speedup": 1.3489349344943464,
+      "time_reduction_percent": 25.867439975905583,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "stand-in-200k-AC-total",
+      "classification": "cross_block_observation",
+      "speedup": 1.6276883455917868,
+      "time_reduction_percent": 38.563177483683155,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "stand-in-200k-AD-total",
+      "classification": "cross_block_observation",
+      "speedup": 1.7110625764753638,
+      "time_reduction_percent": 41.556783851826694,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "stand-in-200k-AE-total",
+      "classification": "cross_block_observation",
+      "speedup": 1.6770352784432028,
+      "time_reduction_percent": 40.37096220609603,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "stand-in-200k-AG-total",
+      "classification": "cross_block_observation",
+      "speedup": 1.9049702099063808,
+      "time_reduction_percent": 47.505740782731465,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "stand-in-200k-AF-total",
+      "classification": "cross_block_observation",
+      "speedup": 2.537811545735533,
+      "time_reduction_percent": 60.59597089940063,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "real-kenlm-20k-AB-total",
+      "classification": "same_block_abba",
+      "speedup": 1.1213536174154068,
+      "time_reduction_percent": 10.822065005249026,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "real-kenlm-20k-AC-total",
+      "classification": "cross_block_observation",
+      "speedup": 1.1752727394251337,
+      "time_reduction_percent": 14.913367216435702,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "real-kenlm-20k-AD-total",
+      "classification": "cross_block_observation",
+      "speedup": 1.2010891054282313,
+      "time_reduction_percent": 16.742230407338166,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "real-kenlm-20k-AE-total",
+      "classification": "cross_block_observation",
+      "speedup": 1.1780615298748818,
+      "time_reduction_percent": 15.114790302488966,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "real-kenlm-20k-AF-total",
+      "classification": "cross_block_observation",
+      "speedup": 1.3515040902578004,
+      "time_reduction_percent": 26.008363037269888,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "real-kenlm-200k-AB-total",
+      "classification": "same_block_abba",
+      "speedup": 1.177395225277527,
+      "time_reduction_percent": 15.066752562693031,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "real-kenlm-200k-AC-total",
+      "classification": "cross_block_observation",
+      "speedup": 1.2502301805656635,
+      "time_reduction_percent": 20.014728843967553,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "real-kenlm-200k-AD-total",
+      "classification": "cross_block_observation",
+      "speedup": 1.4202071506019553,
+      "time_reduction_percent": 29.587736579403256,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "real-kenlm-200k-AE-total",
+      "classification": "cross_block_observation",
+      "speedup": 1.2711029451649631,
+      "time_reduction_percent": 21.328165920485652,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "real-kenlm-200k-AG-total",
+      "classification": "cross_block_observation",
+      "speedup": 1.3419654484956296,
+      "time_reduction_percent": 25.482433163907448,
+      "route_attribution": "mixed; not any single route"
+    },
+    {
+      "id": "real-kenlm-200k-AF-total",
+      "classification": "cross_block_observation",
+      "speedup": 1.6237486833257797,
+      "time_reduction_percent": 38.41411480305011,
+      "route_attribution": "mixed; not any single route"
+    }
+  ],
+  "checks": {
+    "comparison_count": 33,
+    "archived_timing_sample_count": 164,
+    "latest_abba_blocks": 22,
+    "derived_overall_ratios": 22,
+    "columnar_summary_and_semantic_file_hashes_match_record": true,
+    "ad_archived_digest_parity": true
+  },
+  "limitations": [
+    "Historical measurements, no current-machine rerun.",
+    "Different builds, machines, scopes and baselines: do not add or multiply route ratios.",
+    "Latest A/B includes typed JIT and existing expressions; it does not isolate route 1.",
+    "Latest B/F isolates three new lowerings, not all route-2 lowerings.",
+    "Current same-environment three-route ablation is not present in the inspected evidence.",
+    "Recorded output digests were checked; original remote sinks and binaries were not re-audited."
+  ],
+  "current_ad_correction_notice": {
+    "status": "historical_evidence_only",
+    "normal_root_claim_eligible": false,
+    "scope": "AD claims only; historical root configuration not revalidated here",
+    "corrected_report_ref": "/opt/Codex/python-udf-jit/docs/reports/2026-09-07-blue53-ad-explicit-root-correction.md"
+  }
+}
